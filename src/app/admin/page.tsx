@@ -525,25 +525,58 @@ function ServiceForm({ item, onSave, onClose }: { item: Service | null; onSave: 
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null,
   });
 
+  const inputStyle = { width: "100%", padding: "8px 12px", border: "1px solid rgba(107,127,136,0.26)", borderRadius: "8px", background: "#FFFFFF", color: "#0B1F2A", fontSize: "14px", outline: "none" } as React.CSSProperties;
+  const labelStyle = { display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px", color: "#0B1F2A" } as React.CSSProperties;
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-        <Field label="Slug" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required />
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Name</label>
+          <input style={inputStyle} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+        </div>
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Slug</label>
+          <input style={inputStyle} value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required />
+        </div>
       </div>
-      <Textarea label="Description" value={form.description || ""} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+      <div className="space-y-1.5">
+        <label style={labelStyle}>Description</label>
+        <textarea style={{ ...inputStyle, minHeight: "80px", resize: "vertical" }} value={form.description || ""} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+      </div>
       <div className="grid grid-cols-3 gap-4">
-        <Field label="Duration (min)" type="number" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} />
-        <Field label="Price (cents)" type="number" value={form.price_cents} onChange={(e) => setForm({ ...form, price_cents: Number(e.target.value) })} />
-        <Field label="Currency" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} />
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Duration (min)</label>
+          <input style={inputStyle} type="number" value={form.duration_minutes} onChange={(e) => setForm({ ...form, duration_minutes: Number(e.target.value) })} />
+        </div>
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Price (cents)</label>
+          <input style={inputStyle} type="number" value={form.price_cents} onChange={(e) => setForm({ ...form, price_cents: Number(e.target.value) })} />
+        </div>
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Currency</label>
+          <input style={inputStyle} value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} />
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Buffer Before (min)" type="number" value={form.buffer_before_minutes} onChange={(e) => setForm({ ...form, buffer_before_minutes: Number(e.target.value) })} />
-        <Field label="Buffer After (min)" type="number" value={form.buffer_after_minutes} onChange={(e) => setForm({ ...form, buffer_after_minutes: Number(e.target.value) })} />
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Buffer Before (min)</label>
+          <input style={inputStyle} type="number" value={form.buffer_before_minutes} onChange={(e) => setForm({ ...form, buffer_before_minutes: Number(e.target.value) })} />
+        </div>
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Buffer After (min)</label>
+          <input style={inputStyle} type="number" value={form.buffer_after_minutes} onChange={(e) => setForm({ ...form, buffer_after_minutes: Number(e.target.value) })} />
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Min Notice (min)" type="number" value={form.minimum_notice_minutes} onChange={(e) => setForm({ ...form, minimum_notice_minutes: Number(e.target.value) })} />
-        <Field label="Max Advance (days)" type="number" value={form.maximum_advance_days} onChange={(e) => setForm({ ...form, maximum_advance_days: Number(e.target.value) })} />
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Min Notice (min)</label>
+          <input style={inputStyle} type="number" value={form.minimum_notice_minutes} onChange={(e) => setForm({ ...form, minimum_notice_minutes: Number(e.target.value) })} />
+        </div>
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Max Advance (days)</label>
+          <input style={inputStyle} type="number" value={form.maximum_advance_days} onChange={(e) => setForm({ ...form, maximum_advance_days: Number(e.target.value) })} />
+        </div>
       </div>
       <div className="flex gap-2">
         <Button onClick={() => onSave(form)}><Save className="h-4 w-4" /> Save</Button>
@@ -560,23 +593,62 @@ function StaffForm({ item, onSave, onClose }: { item: Staff | null; onSave: (s: 
     is_bookable: true, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null,
   });
 
+  const inputStyle = {
+    width: "100%",
+    padding: "8px 12px",
+    border: "1px solid rgba(107,127,136,0.26)",
+    borderRadius: "8px",
+    background: "#FFFFFF",
+    color: "#0B1F2A",
+    fontSize: "14px",
+    outline: "none",
+  } as React.CSSProperties;
+
+  const labelStyle = {
+    display: "block",
+    fontSize: "14px",
+    fontWeight: 500,
+    marginBottom: "6px",
+    color: "#0B1F2A",
+  } as React.CSSProperties;
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Display Name" value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} required />
-        <Field label="Slug" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required />
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Display Name</label>
+          <input style={inputStyle} value={form.display_name} onChange={(e) => setForm({ ...form, display_name: e.target.value })} required />
+        </div>
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Slug</label>
+          <input style={inputStyle} value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} required />
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Title" value={form.title || ""} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        <Field label="Email" type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Title</label>
+          <input style={inputStyle} value={form.title || ""} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+        </div>
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Email</label>
+          <input style={inputStyle} type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Phone" value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-        <Select label="Timezone" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} options={[
-          { value: "Asia/Beirut", label: "Asia/Beirut" }, { value: "Europe/London", label: "Europe/London" },
-          { value: "Europe/Paris", label: "Europe/Paris" }, { value: "America/New_York", label: "America/New York" },
-          { value: "UTC", label: "UTC" },
-        ]} />
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Phone</label>
+          <input style={inputStyle} value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+        </div>
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Timezone</label>
+          <select style={inputStyle} value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })}>
+            <option value="Asia/Beirut">Asia/Beirut</option>
+            <option value="Europe/London">Europe/London</option>
+            <option value="Europe/Paris">Europe/Paris</option>
+            <option value="America/New_York">America/New_York</option>
+            <option value="UTC">UTC</option>
+          </select>
+        </div>
       </div>
       <div className="flex gap-2">
         <Button onClick={() => onSave(form)}><Save className="h-4 w-4" /> Save</Button>
@@ -600,25 +672,54 @@ function BookingForm({ item, onSave, onClose, services, staff }: { item: Booking
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null,
   });
 
+  const inputStyle = { width: "100%", padding: "8px 12px", border: "1px solid rgba(107,127,136,0.26)", borderRadius: "8px", background: "#FFFFFF", color: "#0B1F2A", fontSize: "14px", outline: "none" } as React.CSSProperties;
+  const labelStyle = { display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px", color: "#0B1F2A" } as React.CSSProperties;
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <Select label="Service" value={form.service_id} onChange={(e) => setForm({ ...form, service_id: e.target.value })} options={services.map(s => ({ value: s.id, label: s.name }))} />
-        <Select label="Staff" value={form.staff_id} onChange={(e) => setForm({ ...form, staff_id: e.target.value })} options={staff.map(s => ({ value: s.id, label: s.display_name }))} />
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Service</label>
+          <select style={inputStyle} value={form.service_id} onChange={(e) => setForm({ ...form, service_id: e.target.value })}>
+            {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Staff</label>
+          <select style={inputStyle} value={form.staff_id} onChange={(e) => setForm({ ...form, staff_id: e.target.value })}>
+            {staff.map(s => <option key={s.id} value={s.id}>{s.display_name}</option>)}
+          </select>
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Start" type="datetime-local" value={form.starts_at.slice(0, 16)} onChange={(e) => setForm({ ...form, starts_at: new Date(e.target.value).toISOString() })} />
-        <Field label="End" type="datetime-local" value={form.ends_at.slice(0, 16)} onChange={(e) => setForm({ ...form, ends_at: new Date(e.target.value).toISOString() })} />
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Start</label>
+          <input style={inputStyle} type="datetime-local" value={form.starts_at.slice(0, 16)} onChange={(e) => setForm({ ...form, starts_at: new Date(e.target.value).toISOString() })} />
+        </div>
+        <div className="space-y-1.5">
+          <label style={labelStyle}>End</label>
+          <input style={inputStyle} type="datetime-local" value={form.ends_at.slice(0, 16)} onChange={(e) => setForm({ ...form, ends_at: new Date(e.target.value).toISOString() })} />
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as any })} options={[
-          { value: "pending", label: "Pending" }, { value: "confirmed", label: "Confirmed" },
-          { value: "cancelled", label: "Cancelled" }, { value: "completed", label: "Completed" },
-        ]} />
-        <Select label="Meeting Method" value={form.meeting_method} onChange={(e) => setForm({ ...form, meeting_method: e.target.value as any })} options={[
-          { value: "video", label: "Video" }, { value: "phone", label: "Phone" },
-          { value: "audio", label: "Audio" }, { value: "in_person", label: "In Person" },
-        ]} />
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Status</label>
+          <select style={inputStyle} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as any })}>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Meeting Method</label>
+          <select style={inputStyle} value={form.meeting_method} onChange={(e) => setForm({ ...form, meeting_method: e.target.value as any })}>
+            <option value="video">Video</option>
+            <option value="phone">Phone</option>
+            <option value="audio">Audio</option>
+            <option value="in_person">In Person</option>
+          </select>
+        </div>
       </div>
       <div className="flex gap-2">
         <Button onClick={() => onSave(form)}><Save className="h-4 w-4" /> Save</Button>
@@ -636,15 +737,30 @@ function CustomerForm({ item, onSave, onClose }: { item: Customer | null; onSave
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null,
   });
 
+  const inputStyle = { width: "100%", padding: "8px 12px", border: "1px solid rgba(107,127,136,0.26)", borderRadius: "8px", background: "#FFFFFF", color: "#0B1F2A", fontSize: "14px", outline: "none" } as React.CSSProperties;
+  const labelStyle = { display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px", color: "#0B1F2A" } as React.CSSProperties;
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Full Name" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required />
-        <Field label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Full Name</label>
+          <input style={inputStyle} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required />
+        </div>
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Email</label>
+          <input style={inputStyle} type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Phone" value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-        <Field label="Company" value={form.company || ""} onChange={(e) => setForm({ ...form, company: e.target.value })} />
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Phone</label>
+          <input style={inputStyle} value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+        </div>
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Company</label>
+          <input style={inputStyle} value={form.company || ""} onChange={(e) => setForm({ ...form, company: e.target.value })} />
+        </div>
       </div>
       <div className="flex gap-2">
         <Button onClick={() => onSave(form)}><Save className="h-4 w-4" /> Save</Button>
@@ -662,8 +778,11 @@ function ScheduleForm({ item, onSave, onClose }: { item: (Schedule & { availabil
 
   const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+  const inputStyle = { width: "100%", padding: "8px 12px", border: "1px solid rgba(107,127,136,0.26)", borderRadius: "8px", background: "#FFFFFF", color: "#0B1F2A", fontSize: "14px", outline: "none" } as React.CSSProperties;
+  const labelStyle = { display: "block", fontSize: "14px", fontWeight: 500, marginBottom: "6px", color: "#0B1F2A" } as React.CSSProperties;
+
   const addRule = (weekday: number) => {
-    const newRule: AvailabilityRule = { id: `ar${Date.now()}`, schedule_id: form.id, weekday, start_time: "09:00", end_time: "17:00", created_at: new Date().toISOString() };
+    const newRule: AvailabilityRule = { id: crypto.randomUUID(), schedule_id: form.id, weekday, start_time: "09:00", end_time: "17:00", created_at: new Date().toISOString() };
     setForm({ ...form, availability_rules: [...(form.availability_rules || []), newRule] });
   };
 
@@ -674,12 +793,20 @@ function ScheduleForm({ item, onSave, onClose }: { item: (Schedule & { availabil
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-        <Select label="Timezone" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} options={[
-          { value: "Asia/Beirut", label: "Asia/Beirut" }, { value: "Europe/London", label: "Europe/London" },
-          { value: "Europe/Paris", label: "Europe/Paris" }, { value: "America/New_York", label: "America/New York" },
-          { value: "UTC", label: "UTC" },
-        ]} />
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Name</label>
+          <input style={inputStyle} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+        </div>
+        <div className="space-y-1.5">
+          <label style={labelStyle}>Timezone</label>
+          <select style={inputStyle} value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })}>
+            <option value="Asia/Beirut">Asia/Beirut</option>
+            <option value="Europe/London">Europe/London</option>
+            <option value="Europe/Paris">Europe/Paris</option>
+            <option value="America/New_York">America/New York</option>
+            <option value="UTC">UTC</option>
+          </select>
+        </div>
       </div>
       <div>
         <p className="text-sm font-medium mb-2">Weekly Rules</p>
