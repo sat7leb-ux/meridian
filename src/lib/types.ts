@@ -89,6 +89,7 @@ export interface Staff {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface Service {
@@ -126,6 +127,7 @@ export interface Service {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
   category_name?: string;
 }
 
@@ -236,6 +238,7 @@ export interface Schedule {
   created_at: string;
   updated_at: string;
   rules?: AvailabilityRule[];
+  availability_rules?: AvailabilityRule[];
 }
 
 export interface Slot {
