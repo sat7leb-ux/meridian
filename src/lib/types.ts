@@ -148,6 +148,7 @@ export interface Customer {
   is_blocked: boolean;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface Booking {
@@ -186,6 +187,7 @@ export interface Booking {
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
   // Joined fields
   service_name?: string;
   staff_name?: string;

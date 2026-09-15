@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { formatTime, formatDate, formatCurrency } from "@/lib/utils";
 import type { Service, Staff, Booking, Customer, Schedule, AvailabilityRule } from "@/lib/types";
-import { Calendar, Clock, Users, Settings, LogOut, BarChart3, Globe, Plus, Edit, Trash2, Search, Filter, Download, Upload, Save, X, Check, ChevronLeft, ChevronRight, User, Phone, Video, MapPin, Mail, Building, FileText, Tag, AlertTriangle, CheckCircle2, XCircle, Eye, EyeOff, Copy, ExternalLink, RefreshCw, MoreVertical, ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, Activity, Zap, Shield, Bell, Database, Server, HardDrive, Wifi, Monitor, Laptop, Smartphone, Tablet, Globe2, Navigation, Compass, Target, Award, Star, Heart, Bookmark, Flag } from "lucide-react";
+import { createPublicClient } from "@/lib/supabase/public";
+import { Calendar, Clock, Users, Settings, LogOut, BarChart3, Globe, Plus, Edit, Trash2, Search, Save, X, Check, ChevronLeft, ChevronRight, User, Phone, Video, MapPin, Mail, Building, CheckCircle2, XCircle, TrendingUp, Zap, Shield, Bell, Database, Server, HardDrive, Wifi, Monitor, Laptop, Smartphone, Tablet, Globe2, Navigation, Compass, Target, Award, Star, Heart, Bookmark, Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, StatCard, EmptyState } from "@/components/ui/card";
 import { Field, Textarea, Select } from "@/components/ui/input";
 
 const AUTH_KEY = "meridian_admin_auth";
+const ORG_ID = "11111111-1111-1111-1111-111111111101";
 
 function useAuth() {
   const router = useRouter();
@@ -41,103 +43,14 @@ function useAuth() {
   return { authenticated, loading, logout };
 }
 
-/* =====================================================================
-   TYPES
-   ===================================================================== */
-interface AdminData {
-  services: Service[];
-  staff: Staff[];
-  bookings: Booking[];
-  customers: Customer[];
-  schedules: Schedule[];
-  availabilityRules: AvailabilityRule[];
-  settings: {
-    orgName: string;
-    orgSlug: string;
-    timezone: string;
-    currency: string;
-    locale: string;
-  };
-}
-
-/* =====================================================================
-   STORAGE
-   ===================================================================== */
-const STORAGE_KEY = "meridian_admin_data";
-
-function loadData(): AdminData {
-  if (typeof window === "undefined") return defaultData();
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return defaultData();
-}
-
-function saveData(data: AdminData) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
-function defaultData(): AdminData {
-  return {
-    services: [
-      { id: "s1", org_id: "org1", category_id: null, slug: "it-consultation", name: "IT Consultation", description: "Scoping call for infrastructure, network or broadcast systems.", duration_minutes: 30, slot_interval_minutes: 15, price_cents: 2500, currency: "USD", meeting_methods: ["video", "phone"], default_method: "video", location: null, phone_number: null, custom_meeting_url: null, meeting_instructions: null, buffer_before_minutes: 0, buffer_after_minutes: 10, minimum_notice_minutes: 60, maximum_advance_days: 45, max_bookings_per_day: 6, requires_confirmation: false, allow_reschedule: true, allow_cancellation: true, cancellation_notice_hours: 24, capacity: 1, form_id: null, reminder_offsets_minutes: [1440, 120], color: "#0E7C7B", sort_order: 1, is_published: true, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null },
-      { id: "s2", org_id: "org1", category_id: null, slug: "tech-support", name: "Technical Support", description: "Live troubleshooting with screen sharing.", duration_minutes: 60, slot_interval_minutes: 30, price_cents: 5000, currency: "USD", meeting_methods: ["video", "phone", "audio"], default_method: "video", location: null, phone_number: null, custom_meeting_url: null, meeting_instructions: null, buffer_before_minutes: 5, buffer_after_minutes: 15, minimum_notice_minutes: 120, maximum_advance_days: 30, max_bookings_per_day: 4, requires_confirmation: false, allow_reschedule: true, allow_cancellation: true, cancellation_notice_hours: 24, capacity: 1, form_id: null, reminder_offsets_minutes: [1440, 120], color: "#C08A2E", sort_order: 2, is_published: true, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null },
-      { id: "s3", org_id: "org1", category_id: null, slug: "discovery", name: "Discovery Call", description: "Fifteen minutes to see whether we are a fit. No charge.", duration_minutes: 15, slot_interval_minutes: 15, price_cents: 0, currency: "USD", meeting_methods: ["video", "phone"], default_method: "video", location: null, phone_number: null, custom_meeting_url: null, meeting_instructions: null, buffer_before_minutes: 0, buffer_after_minutes: 5, minimum_notice_minutes: 30, maximum_advance_days: 21, max_bookings_per_day: 8, requires_confirmation: false, allow_reschedule: true, allow_cancellation: true, cancellation_notice_hours: 24, capacity: 1, form_id: null, reminder_offsets_minutes: [1440], color: "#1E7A4B", sort_order: 3, is_published: true, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null },
-    ],
-    staff: [
-      { id: "st1", org_id: "org1", user_id: null, slug: "elie-khoury", display_name: "Elie Khoury", title: "Lead Systems Engineer", bio: null, avatar_url: null, email: "elie@meridian.com", phone: "+961 76 784 433", timezone: "Asia/Beirut", color: "#0E7C7B", is_bookable: true, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null },
-      { id: "st2", org_id: "org1", user_id: null, slug: "rana-haddad", display_name: "Rana Haddad", title: "Network Specialist", bio: null, avatar_url: null, email: "rana@meridian.com", phone: "+961 76 784 434", timezone: "Asia/Beirut", color: "#C08A2E", is_bookable: true, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null },
-      { id: "st3", org_id: "org1", user_id: null, slug: "marc-aoun", display_name: "Marc Aoun", title: "Support Engineer", bio: null, avatar_url: null, email: "marc@meridian.com", phone: "+961 76 784 435", timezone: "Europe/Paris", color: "#1E7A4B", is_bookable: true, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null },
-    ],
-    bookings: [],
-    customers: [],
-    schedules: [
-      { id: "sch1", org_id: "org1", staff_id: "st1", name: "Elie - Standard", timezone: "Asia/Beirut", is_default: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), availability_rules: [
-        { id: "ar1", schedule_id: "sch1", weekday: 1, start_time: "09:00", end_time: "13:00", created_at: new Date().toISOString() },
-        { id: "ar2", schedule_id: "sch1", weekday: 1, start_time: "14:00", end_time: "18:00", created_at: new Date().toISOString() },
-        { id: "ar3", schedule_id: "sch1", weekday: 2, start_time: "09:00", end_time: "13:00", created_at: new Date().toISOString() },
-        { id: "ar4", schedule_id: "sch1", weekday: 2, start_time: "14:00", end_time: "18:00", created_at: new Date().toISOString() },
-        { id: "ar5", schedule_id: "sch1", weekday: 3, start_time: "09:00", end_time: "13:00", created_at: new Date().toISOString() },
-        { id: "ar6", schedule_id: "sch1", weekday: 3, start_time: "14:00", end_time: "18:00", created_at: new Date().toISOString() },
-        { id: "ar7", schedule_id: "sch1", weekday: 4, start_time: "09:00", end_time: "13:00", created_at: new Date().toISOString() },
-        { id: "ar8", schedule_id: "sch1", weekday: 4, start_time: "14:00", end_time: "18:00", created_at: new Date().toISOString() },
-        { id: "ar9", schedule_id: "sch1", weekday: 5, start_time: "09:00", end_time: "14:00", created_at: new Date().toISOString() },
-      ]},
-      { id: "sch2", org_id: "org1", staff_id: "st2", name: "Rana - Standard", timezone: "Asia/Beirut", is_default: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), availability_rules: [
-        { id: "ar10", schedule_id: "sch2", weekday: 1, start_time: "10:00", end_time: "17:00", created_at: new Date().toISOString() },
-        { id: "ar11", schedule_id: "sch2", weekday: 2, start_time: "10:00", end_time: "17:00", created_at: new Date().toISOString() },
-        { id: "ar12", schedule_id: "sch2", weekday: 3, start_time: "10:00", end_time: "17:00", created_at: new Date().toISOString() },
-        { id: "ar13", schedule_id: "sch2", weekday: 4, start_time: "10:00", end_time: "17:00", created_at: new Date().toISOString() },
-        { id: "ar14", schedule_id: "sch2", weekday: 6, start_time: "10:00", end_time: "13:00", created_at: new Date().toISOString() },
-      ]},
-      { id: "sch3", org_id: "org1", staff_id: "st3", name: "Marc - Standard", timezone: "Europe/Paris", is_default: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), availability_rules: [
-        { id: "ar15", schedule_id: "sch3", weekday: 1, start_time: "08:00", end_time: "16:00", created_at: new Date().toISOString() },
-        { id: "ar16", schedule_id: "sch3", weekday: 2, start_time: "08:00", end_time: "16:00", created_at: new Date().toISOString() },
-        { id: "ar17", schedule_id: "sch3", weekday: 3, start_time: "08:00", end_time: "16:00", created_at: new Date().toISOString() },
-        { id: "ar18", schedule_id: "sch3", weekday: 4, start_time: "08:00", end_time: "16:00", created_at: new Date().toISOString() },
-        { id: "ar19", schedule_id: "sch3", weekday: 5, start_time: "08:00", end_time: "12:00", created_at: new Date().toISOString() },
-      ]},
-    ],
-    availabilityRules: [],
-    settings: {
-      orgName: "Meridian Demo Co.",
-      orgSlug: "meridian-demo",
-      timezone: "Asia/Beirut",
-      currency: "USD",
-      locale: "en",
-    },
-  };
-}
-
-/* =====================================================================
-   MAIN COMPONENT
-   ===================================================================== */
 export default function AdminPortal() {
   const router = useRouter();
   const { authenticated, loading, logout } = useAuth();
-  const [data, setData] = useState<AdminData>(defaultData());
+  const [services, setServices] = useState<Service[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [schedules, setSchedules] = useState<(Schedule & { availability_rules: AvailabilityRule[] })[]>([]);
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -146,41 +59,39 @@ export default function AdminPortal() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  const sb = createPublicClient();
+
+  const fetchData = useCallback(async () => {
+    if (!sb) return;
+    setDataLoading(true);
+    try {
+      const [svcRes, stfRes, bkRes, custRes, schRes] = await Promise.all([
+        sb.from("meridian_services").select("*").eq("org_id", ORG_ID).eq("is_active", true).order("sort_order"),
+        sb.from("meridian_staff").select("*").eq("org_id", ORG_ID).eq("is_active", true).order("display_name"),
+        sb.from("meridian_bookings").select("*").eq("org_id", ORG_ID).order("starts_at", { ascending: false }),
+        sb.from("meridian_customers").select("*").eq("org_id", ORG_ID).order("created_at", { ascending: false }),
+        sb.from("meridian_schedules").select("*, meridian_availability_rules(*)").eq("org_id", ORG_ID),
+      ]);
+      setServices(svcRes.data || []);
+      setStaff(stfRes.data || []);
+      setBookings(bkRes.data || []);
+      setCustomers(custRes.data || []);
+      setSchedules(schRes.data || []);
+    } catch (e) {
+      console.error("Fetch error:", e);
+    }
+    setDataLoading(false);
+  }, [sb]);
 
   useEffect(() => {
-    if (authenticated) {
-      setData(loadData());
-    }
-  }, [authenticated]);
+    if (authenticated) fetchData();
+  }, [authenticated, fetchData]);
 
   useEffect(() => {
-    if (authenticated) {
-      saveData(data);
-    }
-  }, [data, authenticated]);
-
-  useEffect(() => {
-    if (!loading && !authenticated) {
-      router.push("/admin/login");
-    }
+    if (!loading && !authenticated) router.push("/admin/login");
   }, [loading, authenticated, router]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-paper flex items-center justify-center">
-        <div className="text-center">
-          <div className="h-12 w-12 rounded-lg bg-teal flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <Clock className="h-6 w-6 text-white" />
-          </div>
-          <p className="text-mute">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!authenticated) {
-    return null; // Router will redirect
-  }
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     setToast({ message, type });
@@ -193,56 +104,84 @@ export default function AdminPortal() {
     setShowModal(true);
   };
 
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingItem(null);
-  };
+  const closeModal = () => { setShowModal(false); setEditingItem(null); };
 
-  const saveItem = (item: any) => {
-    setData((prev) => {
-      const next = { ...prev };
-      if (modalType === "service") {
-        const idx = next.services.findIndex((s) => s.id === item.id);
-        if (idx >= 0) next.services[idx] = item;
-        else next.services.push(item);
-      } else if (modalType === "staff") {
-        const idx = next.staff.findIndex((s) => s.id === item.id);
-        if (idx >= 0) next.staff[idx] = item;
-        else next.staff.push(item);
-      } else if (modalType === "booking") {
-        const idx = next.bookings.findIndex((b) => b.id === item.id);
-        if (idx >= 0) next.bookings[idx] = item;
-        else next.bookings.push(item);
-      } else if (modalType === "customer") {
-        const idx = next.customers.findIndex((c) => c.id === item.id);
-        if (idx >= 0) next.customers[idx] = item;
-        else next.customers.push(item);
-      } else if (modalType === "schedule") {
-        const idx = next.schedules.findIndex((s) => s.id === item.id);
-        if (idx >= 0) next.schedules[idx] = item;
-        else next.schedules.push(item);
-      } else if (modalType === "settings") {
-        next.settings = item;
-      }
-      return next;
-    });
+  const saveService = async (item: Service) => {
+    if (!sb) return;
+    const { error } = await sb.from("meridian_services").upsert({ ...item, org_id: ORG_ID, updated_at: new Date().toISOString() });
+    if (error) { showToast(error.message, "error"); return; }
+    showToast("Service saved");
     closeModal();
-    showToast(`${modalType} saved successfully`);
+    fetchData();
   };
 
-  const deleteItem = (type: string, id: string) => {
-    if (!confirm("Are you sure you want to delete this item?")) return;
-    setData((prev) => {
-      const next = { ...prev };
-      if (type === "service") next.services = next.services.filter((s) => s.id !== id);
-      else if (type === "staff") next.staff = next.staff.filter((s) => s.id !== id);
-      else if (type === "booking") next.bookings = next.bookings.filter((b) => b.id !== id);
-      else if (type === "customer") next.customers = next.customers.filter((c) => c.id !== id);
-      else if (type === "schedule") next.schedules = next.schedules.filter((s) => s.id !== id);
-      return next;
-    });
-    showToast(`${type} deleted`, "info");
+  const saveStaff = async (item: Staff) => {
+    if (!sb) return;
+    const { error } = await sb.from("meridian_staff").upsert({ ...item, org_id: ORG_ID, updated_at: new Date().toISOString() });
+    if (error) { showToast(error.message, "error"); return; }
+    showToast("Staff saved");
+    closeModal();
+    fetchData();
   };
+
+  const saveBooking = async (item: Booking) => {
+    if (!sb) return;
+    const { error } = await sb.from("meridian_bookings").upsert({ ...item, org_id: ORG_ID, updated_at: new Date().toISOString() });
+    if (error) { showToast(error.message, "error"); return; }
+    showToast("Booking saved");
+    closeModal();
+    fetchData();
+  };
+
+  const saveCustomer = async (item: Customer) => {
+    if (!sb) return;
+    const { error } = await sb.from("meridian_customers").upsert({ ...item, org_id: ORG_ID, updated_at: new Date().toISOString() });
+    if (error) { showToast(error.message, "error"); return; }
+    showToast("Customer saved");
+    closeModal();
+    fetchData();
+  };
+
+  const saveSchedule = async (item: Schedule & { availability_rules: AvailabilityRule[] }) => {
+    if (!sb) return;
+    const { availability_rules, ...scheduleData } = item;
+    const { error: schError } = await sb.from("meridian_schedules").upsert({ ...scheduleData, org_id: ORG_ID, updated_at: new Date().toISOString() });
+    if (schError) { showToast(schError.message, "error"); return; }
+    // Delete old rules and insert new ones
+    await sb.from("meridian_availability_rules").delete().eq("schedule_id", item.id);
+    if (availability_rules.length > 0) {
+      const { error: rulesError } = await sb.from("meridian_availability_rules").insert(availability_rules.map(r => ({ ...r, schedule_id: item.id })));
+      if (rulesError) { showToast(rulesError.message, "error"); return; }
+    }
+    showToast("Schedule saved");
+    closeModal();
+    fetchData();
+  };
+
+  const deleteItem = async (type: string, id: string) => {
+    if (!confirm("Are you sure?")) return;
+    if (!sb) return;
+    const table = type === "service" ? "meridian_services" : type === "staff" ? "meridian_staff" : type === "booking" ? "meridian_bookings" : type === "customer" ? "meridian_customers" : "meridian_schedules";
+    const { error } = await sb.from(table).delete().eq("id", id);
+    if (error) { showToast(error.message, "error"); return; }
+    showToast(`${type} deleted`, "info");
+    fetchData();
+  };
+
+  if (loading || dataLoading) {
+    return (
+      <div className="min-h-screen bg-paper flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-12 w-12 rounded-lg bg-teal flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <Clock className="h-6 w-6 text-white" />
+          </div>
+          <p className="text-mute">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authenticated) return null;
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="h-4 w-4" /> },
@@ -257,7 +196,7 @@ export default function AdminPortal() {
   return (
     <div className="min-h-screen bg-paper flex">
       {/* Sidebar */}
-      <aside className={cn("border-r border-hairline bg-surface transition-all duration-200", sidebarOpen ? "w-64" : "w-16")}>
+      <aside className={cn("border-r border-hairline bg-surface transition-all duration-200 flex flex-col", sidebarOpen ? "w-64" : "w-16")}>
         <div className="p-4 border-b border-hairline flex items-center justify-between">
           {sidebarOpen && <span className="font-display font-bold text-lg">Meridian Admin</span>}
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1 rounded hover:bg-hairline/50">
@@ -266,21 +205,14 @@ export default function AdminPortal() {
         </div>
         <nav className="p-2 space-y-1">
           {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setCurrentPage(item.id)}
-              className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-field text-sm transition-colors", currentPage === item.id ? "bg-teal-100 text-teal-600 font-medium" : "text-mute hover:text-ink hover:bg-hairline/50")}
-            >
+            <button key={item.id} onClick={() => setCurrentPage(item.id)} className={cn("w-full flex items-center gap-3 px-3 py-2 rounded-field text-sm transition-colors", currentPage === item.id ? "bg-teal-100 text-teal-600 font-medium" : "text-mute hover:text-ink hover:bg-hairline/50")}>
               {item.icon}
               {sidebarOpen && <span>{item.label}</span>}
             </button>
           ))}
         </nav>
         <div className="mt-auto p-2 border-t border-hairline">
-          <button
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-field text-sm text-mute hover:text-stop hover:bg-stop/5 transition-colors"
-          >
+          <button onClick={logout} className="w-full flex items-center gap-3 px-3 py-2 rounded-field text-sm text-mute hover:text-stop hover:bg-stop/5 transition-colors">
             <LogOut className="h-4 w-4" />
             {sidebarOpen && <span>Sign out</span>}
           </button>
@@ -288,8 +220,7 @@ export default function AdminPortal() {
       </aside>
 
       {/* Main */}
-      <main className="flex-1 p-6 max-w-7xl">
-        {/* Header */}
+      <main className="flex-1 p-6 max-w-7xl overflow-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-display font-bold capitalize">{currentPage}</h1>
@@ -298,46 +229,45 @@ export default function AdminPortal() {
           <div className="flex items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-mute" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-2 rounded-field border border-hairline bg-surface text-sm focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/20 w-64"
-              />
+              <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9 pr-4 py-2 rounded-field border border-hairline bg-surface text-sm focus:border-teal focus:outline-none focus:ring-2 focus:ring-teal/20 w-64" />
             </div>
             {(currentPage === "services" || currentPage === "staff" || currentPage === "bookings" || currentPage === "customers") && (
               <Button size="sm" onClick={() => openModal(currentPage.slice(0, -1) as any)}>
-                <Plus className="h-4 w-4" />
-                Add {currentPage.slice(0, -1)}
+                <Plus className="h-4 w-4" /> Add {currentPage.slice(0, -1)}
               </Button>
             )}
           </div>
         </div>
 
-        {/* Content */}
-        {currentPage === "dashboard" && <DashboardPage data={data} />}
-        {currentPage === "services" && <ServicesPage data={data} onEdit={(s) => openModal("service", s)} onDelete={(id) => deleteItem("service", id)} searchQuery={searchQuery} />}
-        {currentPage === "staff" && <StaffPage data={data} onEdit={(s) => openModal("staff", s)} onDelete={(id) => deleteItem("staff", id)} searchQuery={searchQuery} />}
-        {currentPage === "bookings" && <BookingsPage data={data} onEdit={(b) => openModal("booking", b)} onDelete={(id) => deleteItem("booking", id)} searchQuery={searchQuery} filterStatus={filterStatus} setFilterStatus={setFilterStatus} />}
-        {currentPage === "customers" && <CustomersPage data={data} onEdit={(c) => openModal("customer", c)} onDelete={(id) => deleteItem("customer", id)} searchQuery={searchQuery} />}
-        {currentPage === "availability" && <AvailabilityPage data={data} onEdit={(s) => openModal("schedule", s)} onDelete={(id) => deleteItem("schedule", id)} />}
-        {currentPage === "settings" && <SettingsPage data={data} onSave={(s) => saveItem(s)} />}
+        {currentPage === "dashboard" && <DashboardPage services={services} staff={staff} bookings={bookings} customers={customers} />}
+        {currentPage === "services" && <ServicesPage services={services} onEdit={(s) => openModal("service", s)} onDelete={(id) => deleteItem("service", id)} searchQuery={searchQuery} />}
+        {currentPage === "staff" && <StaffPage staff={staff} onEdit={(s) => openModal("staff", s)} onDelete={(id) => deleteItem("staff", id)} searchQuery={searchQuery} />}
+        {currentPage === "bookings" && <BookingsPage bookings={bookings} services={services} staff={staff} onEdit={(b) => openModal("booking", b)} onDelete={(id) => deleteItem("booking", id)} searchQuery={searchQuery} filterStatus={filterStatus} setFilterStatus={setFilterStatus} />}
+        {currentPage === "customers" && <CustomersPage customers={customers} onEdit={(c) => openModal("customer", c)} onDelete={(id) => deleteItem("customer", id)} searchQuery={searchQuery} />}
+        {currentPage === "availability" && <AvailabilityPage schedules={schedules} staff={staff} onEdit={(s) => openModal("schedule", s)} onDelete={(id) => deleteItem("schedule", id)} />}
+        {currentPage === "settings" && <SettingsPage />}
       </main>
 
       {/* Modal */}
       {showModal && (
-        <Modal onClose={closeModal}>
-          {modalType === "service" && <ServiceForm item={editingItem} onSave={saveItem} onClose={closeModal} />}
-          {modalType === "staff" && <StaffForm item={editingItem} onSave={saveItem} onClose={closeModal} />}
-          {modalType === "booking" && <BookingForm item={editingItem} onSave={saveItem} onClose={closeModal} data={data} />}
-          {modalType === "customer" && <CustomerForm item={editingItem} onSave={saveItem} onClose={closeModal} />}
-          {modalType === "schedule" && <ScheduleForm item={editingItem} onSave={saveItem} onClose={closeModal} />}
-          {modalType === "settings" && <SettingsForm item={editingItem || data.settings} onSave={saveItem} onClose={closeModal} />}
-        </Modal>
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" onClick={closeModal} />
+          <div className="relative bg-surface rounded-sheet shadow-float max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-surface border-b border-hairline px-6 py-4 flex items-center justify-between rounded-t-sheet">
+              <h2 className="font-display font-semibold text-lg">{editingItem ? "Edit" : "Add"} {modalType}</h2>
+              <button onClick={closeModal} className="p-1 rounded hover:bg-hairline/50"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="p-6">
+              {modalType === "service" && <ServiceForm item={editingItem} onSave={saveService} onClose={closeModal} />}
+              {modalType === "staff" && <StaffForm item={editingItem} onSave={saveStaff} onClose={closeModal} />}
+              {modalType === "booking" && <BookingForm item={editingItem} onSave={saveBooking} onClose={closeModal} services={services} staff={staff} />}
+              {modalType === "customer" && <CustomerForm item={editingItem} onSave={saveCustomer} onClose={closeModal} />}
+              {modalType === "schedule" && <ScheduleForm item={editingItem} onSave={saveSchedule} onClose={closeModal} />}
+            </div>
+          </div>
+        </div>
       )}
 
-      {/* Toast */}
       {toast && (
         <div className={cn("fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 rounded-field shadow-float text-sm font-medium z-50", toast.type === "success" ? "bg-ok text-white" : toast.type === "error" ? "bg-stop text-white" : "bg-ink text-paper")}>
           {toast.message}
@@ -348,71 +278,47 @@ export default function AdminPortal() {
 }
 
 /* =====================================================================
-   DASHBOARD PAGE
+   DASHBOARD
    ===================================================================== */
-function DashboardPage({ data }: { data: AdminData }) {
-  const totalBookings = data.bookings.length;
-  const confirmedBookings = data.bookings.filter((b) => b.status === "confirmed").length;
-  const pendingBookings = data.bookings.filter((b) => b.status === "pending").length;
-  const cancelledBookings = data.bookings.filter((b) => b.status === "cancelled").length;
-  const totalRevenue = data.bookings.filter((b) => b.status === "confirmed" || b.status === "completed").reduce((sum, b) => sum + b.price_cents, 0);
-  const totalCustomers = data.customers.length;
-  const totalServices = data.services.length;
-  const totalStaff = data.staff.length;
+function DashboardPage({ services, staff, bookings, customers }: { services: Service[]; staff: Staff[]; bookings: Booking[]; customers: Customer[] }) {
+  const confirmed = bookings.filter(b => b.status === "confirmed").length;
+  const pending = bookings.filter(b => b.status === "pending").length;
+  const cancelled = bookings.filter(b => b.status === "cancelled").length;
+  const revenue = bookings.filter(b => b.status === "confirmed" || b.status === "completed").reduce((s, b) => s + (b.price_cents || 0), 0);
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Bookings" value={totalBookings} icon={<Calendar className="h-4 w-4" />} />
-        <StatCard label="Confirmed" value={confirmedBookings} icon={<CheckCircle2 className="h-4 w-4" />} />
-        <StatCard label="Pending" value={pendingBookings} icon={<Clock className="h-4 w-4" />} />
-        <StatCard label="Cancelled" value={cancelledBookings} icon={<XCircle className="h-4 w-4" />} />
-        <StatCard label="Revenue" value={formatCurrency(totalRevenue, data.settings.currency)} icon={<TrendingUp className="h-4 w-4" />} />
-        <StatCard label="Customers" value={totalCustomers} icon={<Users className="h-4 w-4" />} />
-        <StatCard label="Services" value={totalServices} icon={<Zap className="h-4 w-4" />} />
-        <StatCard label="Staff" value={totalStaff} icon={<User className="h-4 w-4" />} />
+        <StatCard label="Total Bookings" value={bookings.length} icon={<Calendar className="h-4 w-4" />} />
+        <StatCard label="Confirmed" value={confirmed} icon={<CheckCircle2 className="h-4 w-4" />} />
+        <StatCard label="Pending" value={pending} icon={<Clock className="h-4 w-4" />} />
+        <StatCard label="Cancelled" value={cancelled} icon={<XCircle className="h-4 w-4" />} />
+        <StatCard label="Revenue" value={formatCurrency(revenue, "USD")} icon={<TrendingUp className="h-4 w-4" />} />
+        <StatCard label="Customers" value={customers.length} icon={<Users className="h-4 w-4" />} />
+        <StatCard label="Services" value={services.length} icon={<Zap className="h-4 w-4" />} />
+        <StatCard label="Staff" value={staff.length} icon={<User className="h-4 w-4" />} />
       </div>
-
       <div className="grid md:grid-cols-2 gap-6">
         <Card>
           <h3 className="font-display font-semibold mb-4">Recent Bookings</h3>
-          {data.bookings.length === 0 ? (
-            <EmptyState title="No bookings yet" description="Bookings will appear here once customers start scheduling." />
-          ) : (
-            <div className="space-y-3">
-              {data.bookings.slice(0, 5).map((b) => (
-                <div key={b.id} className="flex items-center justify-between py-2 border-b border-hairline last:border-0">
-                  <div>
-                    <p className="font-medium text-sm">{b.customer_name || "Unknown"}</p>
-                    <p className="text-xs text-mute">{b.service_name || "Unknown service"}</p>
-                  </div>
-                  <Badge variant={b.status === "confirmed" ? "confirmed" : b.status === "cancelled" ? "cancelled" : "pending"}>
-                    {b.status}
-                  </Badge>
-                </div>
-              ))}
-            </div>
+          {bookings.length === 0 ? <EmptyState title="No bookings yet" description="Bookings will appear here once customers start scheduling." /> : (
+            <div className="space-y-3">{bookings.slice(0, 5).map((b) => (
+              <div key={b.id} className="flex items-center justify-between py-2 border-b border-hairline last:border-0">
+                <div><p className="font-medium text-sm">{b.title || "Booking"}</p><p className="text-xs text-mute">{b.reference}</p></div>
+                <Badge variant={b.status === "confirmed" ? "confirmed" : b.status === "cancelled" ? "cancelled" : "pending"}>{b.status}</Badge>
+              </div>
+            ))}</div>
           )}
         </Card>
-
         <Card>
           <h3 className="font-display font-semibold mb-4">Services</h3>
-          {data.services.length === 0 ? (
-            <EmptyState title="No services yet" description="Create your first service to start accepting bookings." />
-          ) : (
-            <div className="space-y-3">
-              {data.services.slice(0, 5).map((s) => (
-                <div key={s.id} className="flex items-center justify-between py-2 border-b border-hairline last:border-0">
-                  <div>
-                    <p className="font-medium text-sm">{s.name}</p>
-                    <p className="text-xs text-mute">{s.duration_minutes} min · {formatCurrency(s.price_cents, s.currency)}</p>
-                  </div>
-                  <Badge variant={s.is_published ? "confirmed" : "pending"}>
-                    {s.is_published ? "Published" : "Draft"}
-                  </Badge>
-                </div>
-              ))}
-            </div>
+          {services.length === 0 ? <EmptyState title="No services yet" description="Create your first service to start accepting bookings." /> : (
+            <div className="space-y-3">{services.slice(0, 5).map((s) => (
+              <div key={s.id} className="flex items-center justify-between py-2 border-b border-hairline last:border-0">
+                <div><p className="font-medium text-sm">{s.name}</p><p className="text-xs text-mute">{s.duration_minutes} min · {formatCurrency(s.price_cents, s.currency)}</p></div>
+                <Badge variant={s.is_published ? "confirmed" : "pending"}>{s.is_published ? "Published" : "Draft"}</Badge>
+              </div>
+            ))}</div>
           )}
         </Card>
       </div>
@@ -421,39 +327,27 @@ function DashboardPage({ data }: { data: AdminData }) {
 }
 
 /* =====================================================================
-   SERVICES PAGE
+   SERVICES
    ===================================================================== */
-function ServicesPage({ data, onEdit, onDelete, searchQuery }: { data: AdminData; onEdit: (s: Service) => void; onDelete: (id: string) => void; searchQuery: string }) {
-  const filtered = data.services.filter((s) => s.name.toLowerCase().includes(searchQuery.toLowerCase()) || s.description?.toLowerCase().includes(searchQuery.toLowerCase()));
-
+function ServicesPage({ services, onEdit, onDelete, searchQuery }: { services: Service[]; onEdit: (s: Service) => void; onDelete: (id: string) => void; searchQuery: string }) {
+  const filtered = services.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
   return (
     <div className="space-y-4">
-      {filtered.length === 0 ? (
-        <EmptyState title="No services found" description="Try adjusting your search or create a new service." />
-      ) : (
+      {filtered.length === 0 ? <EmptyState title="No services found" description="Try adjusting your search or create a new service." /> : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((s) => (
             <Card key={s.id} hover>
               <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="font-display font-semibold">{s.name}</h3>
-                  {s.description && <p className="text-sm text-mute mt-1 line-clamp-2">{s.description}</p>}
-                </div>
-                <Badge variant={s.is_published ? "confirmed" : "pending"}>
-                  {s.is_published ? "Published" : "Draft"}
-                </Badge>
+                <div><h3 className="font-display font-semibold">{s.name}</h3>{s.description && <p className="text-sm text-mute mt-1 line-clamp-2">{s.description}</p>}</div>
+                <Badge variant={s.is_published ? "confirmed" : "pending"}>{s.is_published ? "Published" : "Draft"}</Badge>
               </div>
               <div className="flex items-center gap-3 text-xs text-mute mb-3">
                 <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{s.duration_minutes} min</span>
                 <span className="tabular font-medium text-brass">{formatCurrency(s.price_cents, s.currency)}</span>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => onEdit(s)}>
-                  <Edit className="h-3.5 w-3.5" /> Edit
-                </Button>
-                <Button variant="ghost" size="sm" className="flex-1 text-stop hover:text-stop" onClick={() => onDelete(s.id)}>
-                  <Trash2 className="h-3.5 w-3.5" /> Delete
-                </Button>
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => onEdit(s)}><Edit className="h-3.5 w-3.5" /> Edit</Button>
+                <Button variant="ghost" size="sm" className="flex-1 text-stop hover:text-stop" onClick={() => onDelete(s.id)}><Trash2 className="h-3.5 w-3.5" /> Delete</Button>
               </div>
             </Card>
           ))}
@@ -464,27 +358,19 @@ function ServicesPage({ data, onEdit, onDelete, searchQuery }: { data: AdminData
 }
 
 /* =====================================================================
-   STAFF PAGE
+   STAFF
    ===================================================================== */
-function StaffPage({ data, onEdit, onDelete, searchQuery }: { data: AdminData; onEdit: (s: Staff) => void; onDelete: (id: string) => void; searchQuery: string }) {
-  const filtered = data.staff.filter((s) => s.display_name.toLowerCase().includes(searchQuery.toLowerCase()) || s.title?.toLowerCase().includes(searchQuery.toLowerCase()));
-
+function StaffPage({ staff, onEdit, onDelete, searchQuery }: { staff: Staff[]; onEdit: (s: Staff) => void; onDelete: (id: string) => void; searchQuery: string }) {
+  const filtered = staff.filter(s => s.display_name.toLowerCase().includes(searchQuery.toLowerCase()));
   return (
     <div className="space-y-4">
-      {filtered.length === 0 ? (
-        <EmptyState title="No staff found" description="Try adjusting your search or add a new staff member." />
-      ) : (
+      {filtered.length === 0 ? <EmptyState title="No staff found" description="Try adjusting your search or add a new staff member." /> : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((s) => (
             <Card key={s.id} hover>
               <div className="flex items-center gap-3 mb-3">
-                <div className="h-10 w-10 rounded-full flex items-center justify-center text-white font-medium" style={{ backgroundColor: s.color || "#0E7C7B" }}>
-                  {s.display_name.split(" ").map((n) => n[0]).join("")}
-                </div>
-                <div>
-                  <h3 className="font-display font-semibold">{s.display_name}</h3>
-                  {s.title && <p className="text-xs text-mute">{s.title}</p>}
-                </div>
+                <div className="h-10 w-10 rounded-full flex items-center justify-center text-white font-medium" style={{ backgroundColor: s.color || "#0E7C7B" }}>{s.display_name.split(" ").map(n => n[0]).join("")}</div>
+                <div><h3 className="font-display font-semibold">{s.display_name}</h3>{s.title && <p className="text-xs text-mute">{s.title}</p>}</div>
               </div>
               <div className="space-y-1 text-xs text-mute mb-3">
                 {s.email && <p className="flex items-center gap-1"><Mail className="h-3 w-3" />{s.email}</p>}
@@ -492,12 +378,8 @@ function StaffPage({ data, onEdit, onDelete, searchQuery }: { data: AdminData; o
                 <p className="flex items-center gap-1"><Globe className="h-3 w-3" />{s.timezone}</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => onEdit(s)}>
-                  <Edit className="h-3.5 w-3.5" /> Edit
-                </Button>
-                <Button variant="ghost" size="sm" className="flex-1 text-stop hover:text-stop" onClick={() => onDelete(s.id)}>
-                  <Trash2 className="h-3.5 w-3.5" /> Delete
-                </Button>
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => onEdit(s)}><Edit className="h-3.5 w-3.5" /> Edit</Button>
+                <Button variant="ghost" size="sm" className="flex-1 text-stop hover:text-stop" onClick={() => onDelete(s.id)}><Trash2 className="h-3.5 w-3.5" /> Delete</Button>
               </div>
             </Card>
           ))}
@@ -508,178 +390,115 @@ function StaffPage({ data, onEdit, onDelete, searchQuery }: { data: AdminData; o
 }
 
 /* =====================================================================
-   BOOKINGS PAGE
+   BOOKINGS
    ===================================================================== */
-function BookingsPage({ data, onEdit, onDelete, searchQuery, filterStatus, setFilterStatus }: { data: AdminData; onEdit: (b: Booking) => void; onDelete: (id: string) => void; searchQuery: string; filterStatus: string; setFilterStatus: (s: string) => void }) {
-  const filtered = data.bookings.filter((b) => {
-    const matchesSearch = b.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) || b.service_name?.toLowerCase().includes(searchQuery.toLowerCase()) || b.reference?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === "all" || b.status === filterStatus;
-    return matchesSearch && matchesStatus;
+function BookingsPage({ bookings, services, staff, onEdit, onDelete, searchQuery, filterStatus, setFilterStatus }: { bookings: Booking[]; services: Service[]; staff: Staff[]; onEdit: (b: Booking) => void; onDelete: (id: string) => void; searchQuery: string; filterStatus: string; setFilterStatus: (s: string) => void }) {
+  const filtered = bookings.filter(b => {
+    const matchSearch = b.reference?.toLowerCase().includes(searchQuery.toLowerCase()) || b.title?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchStatus = filterStatus === "all" || b.status === filterStatus;
+    return matchSearch && matchStatus;
   });
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        {["all", "confirmed", "pending", "cancelled", "completed", "no_show"].map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilterStatus(status)}
-            className={cn("px-3 py-1.5 rounded-full text-sm font-medium transition-colors", filterStatus === status ? "bg-teal text-white" : "bg-hairline/20 text-mute hover:bg-hairline/40")}
-          >
-            {status.replace("_", " ")}
-          </button>
+        {["all", "confirmed", "pending", "cancelled", "completed"].map(status => (
+          <button key={status} onClick={() => setFilterStatus(status)} className={cn("px-3 py-1.5 rounded-full text-sm font-medium transition-colors", filterStatus === status ? "bg-teal text-white" : "bg-hairline/20 text-mute hover:bg-hairline/40")}>{status}</button>
         ))}
       </div>
-
-      {filtered.length === 0 ? (
-        <EmptyState title="No bookings found" description="Try adjusting your search or filters." />
-      ) : (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr>
-                  <th>Reference</th>
-                  <th>Customer</th>
-                  <th>Service</th>
-                  <th>Date & Time</th>
-                  <th>Status</th>
-                  <th>Price</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((b) => (
+      {filtered.length === 0 ? <EmptyState title="No bookings found" description="Try adjusting your search or filters." /> : (
+        <Card><div className="overflow-x-auto">
+          <table className="w-full">
+            <thead><tr><th>Reference</th><th>Service</th><th>Staff</th><th>Date</th><th>Status</th><th>Price</th><th>Actions</th></tr></thead>
+            <tbody>
+              {filtered.map((b) => {
+                const svc = services.find(s => s.id === b.service_id);
+                const stf = staff.find(s => s.id === b.staff_id);
+                return (
                   <tr key={b.id} className="border-b border-hairline last:border-0">
                     <td className="py-3 px-4 text-sm tabular">{b.reference}</td>
-                    <td className="py-3 px-4 text-sm">{b.customer_name}</td>
-                    <td className="py-3 px-4 text-sm">{b.service_name}</td>
+                    <td className="py-3 px-4 text-sm">{svc?.name || "-"}</td>
+                    <td className="py-3 px-4 text-sm">{stf?.display_name || "-"}</td>
                     <td className="py-3 px-4 text-sm tabular">{formatDate(b.starts_at, b.customer_timezone)} {formatTime(b.starts_at, b.customer_timezone)}</td>
-                    <td className="py-3 px-4">
-                      <Badge variant={b.status === "confirmed" ? "confirmed" : b.status === "cancelled" ? "cancelled" : "pending"}>
-                        {b.status}
-                      </Badge>
-                    </td>
+                    <td className="py-3 px-4"><Badge variant={b.status === "confirmed" ? "confirmed" : b.status === "cancelled" ? "cancelled" : "pending"}>{b.status}</Badge></td>
                     <td className="py-3 px-4 text-sm tabular">{formatCurrency(b.price_cents, b.currency)}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => onEdit(b)}>
-                          <Edit className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-stop hover:text-stop" onClick={() => onDelete(b.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </td>
+                    <td className="py-3 px-4"><div className="flex gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => onEdit(b)}><Edit className="h-3.5 w-3.5" /></Button>
+                      <Button variant="ghost" size="sm" className="text-stop hover:text-stop" onClick={() => onDelete(b.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    </div></td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                );
+              })}
+            </tbody>
+          </table>
+        </div></Card>
       )}
     </div>
   );
 }
 
 /* =====================================================================
-   CUSTOMERS PAGE
+   CUSTOMERS
    ===================================================================== */
-function CustomersPage({ data, onEdit, onDelete, searchQuery }: { data: AdminData; onEdit: (c: Customer) => void; onDelete: (id: string) => void; searchQuery: string }) {
-  const filtered = data.customers.filter((c) => c.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || c.email.toLowerCase().includes(searchQuery.toLowerCase()));
-
+function CustomersPage({ customers, onEdit, onDelete, searchQuery }: { customers: Customer[]; onEdit: (c: Customer) => void; onDelete: (id: string) => void; searchQuery: string }) {
+  const filtered = customers.filter(c => c.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || c.email.toLowerCase().includes(searchQuery.toLowerCase()));
   return (
     <div className="space-y-4">
-      {filtered.length === 0 ? (
-        <EmptyState title="No customers found" description="Try adjusting your search or add a new customer." />
-      ) : (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Bookings</th>
-                  <th>Last Booking</th>
-                  <th>Actions</th>
+      {filtered.length === 0 ? <EmptyState title="No customers found" description="Try adjusting your search or add a new customer." /> : (
+        <Card><div className="overflow-x-auto">
+          <table className="w-full">
+            <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Bookings</th><th>Last Booking</th><th>Actions</th></tr></thead>
+            <tbody>
+              {filtered.map((c) => (
+                <tr key={c.id} className="border-b border-hairline last:border-0">
+                  <td className="py-3 px-4 text-sm font-medium">{c.full_name}</td>
+                  <td className="py-3 px-4 text-sm text-mute">{c.email}</td>
+                  <td className="py-3 px-4 text-sm text-mute">{c.phone || "-"}</td>
+                  <td className="py-3 px-4 text-sm tabular">{c.total_bookings}</td>
+                  <td className="py-3 px-4 text-sm tabular">{c.last_booking_at ? formatDate(c.last_booking_at, c.timezone || "UTC") : "-"}</td>
+                  <td className="py-3 px-4"><div className="flex gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => onEdit(c)}><Edit className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="sm" className="text-stop hover:text-stop" onClick={() => onDelete(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  </div></td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map((c) => (
-                  <tr key={c.id} className="border-b border-hairline last:border-0">
-                    <td className="py-3 px-4 text-sm font-medium">{c.full_name}</td>
-                    <td className="py-3 px-4 text-sm text-mute">{c.email}</td>
-                    <td className="py-3 px-4 text-sm text-mute">{c.phone || "-"}</td>
-                    <td className="py-3 px-4 text-sm tabular">{c.total_bookings}</td>
-                    <td className="py-3 px-4 text-sm tabular">{c.last_booking_at ? formatDate(c.last_booking_at, c.timezone || "UTC") : "-"}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => onEdit(c)}>
-                          <Edit className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-stop hover:text-stop" onClick={() => onDelete(c.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+              ))}
+            </tbody>
+          </table>
+        </div></Card>
       )}
     </div>
   );
 }
 
 /* =====================================================================
-   AVAILABILITY PAGE
+   AVAILABILITY
    ===================================================================== */
-function AvailabilityPage({ data, onEdit, onDelete }: { data: AdminData; onEdit: (s: Schedule) => void; onDelete: (id: string) => void }) {
+function AvailabilityPage({ schedules, staff, onEdit, onDelete }: { schedules: (Schedule & { availability_rules: AvailabilityRule[] })[]; staff: Staff[]; onEdit: (s: any) => void; onDelete: (id: string) => void }) {
   const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
   return (
     <div className="space-y-6">
-      {data.schedules.map((schedule) => {
-        const staff = data.staff.find((s) => s.id === schedule.staff_id);
+      {schedules.map((schedule) => {
+        const stf = staff.find(s => s.id === schedule.staff_id);
         return (
           <Card key={schedule.id}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full flex items-center justify-center text-white font-medium" style={{ backgroundColor: staff?.color || "#0E7C7B" }}>
-                  {staff?.display_name.split(" ").map((n) => n[0]).join("")}
-                </div>
-                <div>
-                  <h3 className="font-display font-semibold">{schedule.name}</h3>
-                  <p className="text-xs text-mute">{staff?.display_name} · {schedule.timezone}</p>
-                </div>
+                <div className="h-10 w-10 rounded-full flex items-center justify-center text-white font-medium" style={{ backgroundColor: stf?.color || "#0E7C7B" }}>{stf?.display_name.split(" ").map(n => n[0]).join("")}</div>
+                <div><h3 className="font-display font-semibold">{schedule.name}</h3><p className="text-xs text-mute">{stf?.display_name} · {schedule.timezone}</p></div>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => onEdit(schedule)}>
-                  <Edit className="h-3.5 w-3.5" /> Edit
-                </Button>
-                <Button variant="ghost" size="sm" className="text-stop hover:text-stop" onClick={() => onDelete(schedule.id)}>
-                  <Trash2 className="h-3.5 w-3.5" /> Delete
-                </Button>
+                <Button variant="outline" size="sm" onClick={() => onEdit(schedule)}><Edit className="h-3.5 w-3.5" /> Edit</Button>
+                <Button variant="ghost" size="sm" className="text-stop hover:text-stop" onClick={() => onDelete(schedule.id)}><Trash2 className="h-3.5 w-3.5" /> Delete</Button>
               </div>
             </div>
             <div className="grid grid-cols-7 gap-2">
               {weekdayNames.map((day, idx) => {
-                const rules = schedule.availability_rules?.filter((r) => r.weekday === idx) || [];
+                const rules = schedule.availability_rules?.filter(r => r.weekday === idx) || [];
                 return (
                   <div key={day} className="p-3 rounded-field border border-hairline bg-paper/50">
                     <p className="text-xs font-medium text-mute mb-2">{day}</p>
-                    {rules.length === 0 ? (
-                      <p className="text-xs text-mute">Closed</p>
-                    ) : (
-                      <div className="space-y-1">
-                        {rules.map((r) => (
-                          <p key={r.id} className="text-xs tabular">{r.start_time} - {r.end_time}</p>
-                        ))}
-                      </div>
+                    {rules.length === 0 ? <p className="text-xs text-mute">Closed</p> : (
+                      <div className="space-y-1">{rules.map(r => <p key={r.id} className="text-xs tabular">{r.start_time} - {r.end_time}</p>)}</div>
                     )}
                   </div>
                 );
@@ -693,61 +512,15 @@ function AvailabilityPage({ data, onEdit, onDelete }: { data: AdminData; onEdit:
 }
 
 /* =====================================================================
-   SETTINGS PAGE
+   SETTINGS (placeholder)
    ===================================================================== */
-function SettingsPage({ data, onSave }: { data: AdminData; onSave: (s: any) => void }) {
-  const [form, setForm] = useState(data.settings);
-
+function SettingsPage() {
   return (
     <div className="max-w-2xl">
       <Card>
         <h3 className="font-display font-semibold mb-4">Organization Settings</h3>
-        <div className="space-y-4">
-          <Field label="Organization Name" value={form.orgName} onChange={(e) => setForm({ ...form, orgName: e.target.value })} />
-          <Field label="Slug" value={form.orgSlug} onChange={(e) => setForm({ ...form, orgSlug: e.target.value })} />
-          <Select label="Timezone" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} options={[
-            { value: "Asia/Beirut", label: "Asia/Beirut" },
-            { value: "Europe/London", label: "Europe/London" },
-            { value: "Europe/Paris", label: "Europe/Paris" },
-            { value: "America/New_York", label: "America/New_York" },
-            { value: "UTC", label: "UTC" },
-          ]} />
-          <Select label="Currency" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} options={[
-            { value: "USD", label: "USD" },
-            { value: "EUR", label: "EUR" },
-            { value: "GBP", label: "GBP" },
-            { value: "LBP", label: "LBP" },
-          ]} />
-          <Select label="Locale" value={form.locale} onChange={(e) => setForm({ ...form, locale: e.target.value })} options={[
-            { value: "en", label: "English" },
-            { value: "fr", label: "French" },
-            { value: "ar", label: "Arabic" },
-          ]} />
-          <Button onClick={() => onSave(form)}>
-            <Save className="h-4 w-4" /> Save Settings
-          </Button>
-        </div>
+        <p className="text-sm text-mute">Settings are managed through the database. Contact your administrator to modify organization settings.</p>
       </Card>
-    </div>
-  );
-}
-
-/* =====================================================================
-   MODAL
-   ===================================================================== */
-function Modal({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-surface rounded-sheet shadow-float max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-surface border-b border-hairline px-6 py-4 flex items-center justify-between rounded-t-sheet">
-          <h2 className="font-display font-semibold text-lg">Edit</h2>
-          <button onClick={onClose} className="p-1 rounded hover:bg-hairline/50">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="p-6">{children}</div>
-      </div>
     </div>
   );
 }
@@ -756,42 +529,16 @@ function Modal({ children, onClose }: { children: React.ReactNode; onClose: () =
    FORMS
    ===================================================================== */
 function ServiceForm({ item, onSave, onClose }: { item: Service | null; onSave: (s: Service) => void; onClose: () => void }) {
-  const [form, setForm] = useState(item || {
-    id: `s${Date.now()}`,
-    org_id: "org1",
-    category_id: null,
-    slug: "",
-    name: "",
-    description: "",
-    duration_minutes: 30,
-    slot_interval_minutes: 15,
-    price_cents: 0,
-    currency: "USD",
-    meeting_methods: ["video"] as any[],
-    default_method: "video" as any,
-    location: null,
-    phone_number: null,
-    custom_meeting_url: null,
-    meeting_instructions: null,
-    buffer_before_minutes: 0,
-    buffer_after_minutes: 0,
-    minimum_notice_minutes: 60,
-    maximum_advance_days: 60,
-    max_bookings_per_day: null,
-    requires_confirmation: false,
-    allow_reschedule: true,
-    allow_cancellation: true,
-    cancellation_notice_hours: 24,
-    capacity: 1,
-    form_id: null,
-    reminder_offsets_minutes: [1440, 120],
-    color: "#0E7C7B",
-    sort_order: 0,
-    is_published: true,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    deleted_at: null,
+  const [form, setForm] = useState<Service>(item || {
+    id: `s${Date.now()}`, org_id: ORG_ID, category_id: null, slug: "", name: "", description: "",
+    duration_minutes: 30, slot_interval_minutes: 15, price_cents: 0, currency: "USD",
+    meeting_methods: ["video"] as any, default_method: "video" as any, location: null, phone_number: null,
+    custom_meeting_url: null, meeting_instructions: null, buffer_before_minutes: 0, buffer_after_minutes: 0,
+    minimum_notice_minutes: 60, maximum_advance_days: 60, max_bookings_per_day: null,
+    requires_confirmation: false, allow_reschedule: true, allow_cancellation: true,
+    cancellation_notice_hours: 24, capacity: 1, form_id: null, reminder_offsets_minutes: [1440, 120],
+    color: "#0E7C7B", sort_order: 0, is_published: true, is_active: true,
+    created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null,
   });
 
   return (
@@ -815,9 +562,7 @@ function ServiceForm({ item, onSave, onClose }: { item: Service | null; onSave: 
         <Field label="Max Advance (days)" type="number" value={form.maximum_advance_days} onChange={(e) => setForm({ ...form, maximum_advance_days: Number(e.target.value) })} />
       </div>
       <div className="flex gap-2">
-        <Button onClick={() => onSave(form)}>
-          <Save className="h-4 w-4" /> Save
-        </Button>
+        <Button onClick={() => onSave(form)}><Save className="h-4 w-4" /> Save</Button>
         <Button variant="outline" onClick={onClose}>Cancel</Button>
       </div>
     </div>
@@ -825,24 +570,10 @@ function ServiceForm({ item, onSave, onClose }: { item: Service | null; onSave: 
 }
 
 function StaffForm({ item, onSave, onClose }: { item: Staff | null; onSave: (s: Staff) => void; onClose: () => void }) {
-  const [form, setForm] = useState(item || {
-    id: `st${Date.now()}`,
-    org_id: "org1",
-    user_id: null,
-    slug: "",
-    display_name: "",
-    title: "",
-    bio: null,
-    avatar_url: null,
-    email: "",
-    phone: "",
-    timezone: "Asia/Beirut",
-    color: "#0E7C7B",
-    is_bookable: true,
-    is_active: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    deleted_at: null,
+  const [form, setForm] = useState<Staff>(item || {
+    id: `st${Date.now()}`, org_id: ORG_ID, user_id: null, slug: "", display_name: "", title: "",
+    bio: null, avatar_url: null, email: "", phone: "", timezone: "Asia/Beirut", color: "#0E7C7B",
+    is_bookable: true, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null,
   });
 
   return (
@@ -858,68 +589,38 @@ function StaffForm({ item, onSave, onClose }: { item: Staff | null; onSave: (s: 
       <div className="grid grid-cols-2 gap-4">
         <Field label="Phone" value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         <Select label="Timezone" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} options={[
-          { value: "Asia/Beirut", label: "Asia/Beirut" },
-          { value: "Europe/London", label: "Europe/London" },
-          { value: "Europe/Paris", label: "Europe/Paris" },
-          { value: "America/New_York", label: "America/New_York" },
+          { value: "Asia/Beirut", label: "Asia/Beirut" }, { value: "Europe/London", label: "Europe/London" },
+          { value: "Europe/Paris", label: "Europe/Paris" }, { value: "America/New_York", label: "America/New York" },
           { value: "UTC", label: "UTC" },
         ]} />
       </div>
       <div className="flex gap-2">
-        <Button onClick={() => onSave(form)}>
-          <Save className="h-4 w-4" /> Save
-        </Button>
+        <Button onClick={() => onSave(form)}><Save className="h-4 w-4" /> Save</Button>
         <Button variant="outline" onClick={onClose}>Cancel</Button>
       </div>
     </div>
   );
 }
 
-function BookingForm({ item, onSave, onClose, data }: { item: Booking | null; onSave: (b: Booking) => void; onClose: () => void; data: AdminData }) {
-  const [form, setForm] = useState(item || {
-    id: `b${Date.now()}`,
-    org_id: "org1",
-    service_id: data.services[0]?.id || "",
-    staff_id: data.staff[0]?.id || "",
-    customer_id: data.customers[0]?.id || "",
-    reference: `MRD-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
-    starts_at: new Date().toISOString(),
-    ends_at: new Date(Date.now() + 3600000).toISOString(),
-    duration_minutes: 30,
-    customer_timezone: "Asia/Beirut",
-    staff_timezone: "Asia/Beirut",
-    status: "confirmed" as any,
-    meeting_method: "video" as any,
-    meeting_url: null,
-    meeting_phone: null,
-    meeting_location: null,
-    meeting_provider: null,
-    meeting_ref: null,
-    meeting_instructions: null,
-    price_cents: 0,
-    currency: "USD",
-    access_token_hash: "",
-    title: null,
-    internal_notes: null,
-    customer_note: null,
-    source: "admin",
-    rescheduled_from: null,
-    cancelled_at: null,
-    cancelled_by: null,
-    cancellation_reason: null,
-    completed_at: null,
-    external_event_ids: {},
-    metadata: {},
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    deleted_at: null,
+function BookingForm({ item, onSave, onClose, services, staff }: { item: Booking | null; onSave: (b: Booking) => void; onClose: () => void; services: Service[]; staff: Staff[] }) {
+  const [form, setForm] = useState<Booking>(item || {
+    id: `b${Date.now()}`, org_id: ORG_ID, service_id: services[0]?.id || "", staff_id: staff[0]?.id || "",
+    customer_id: "", reference: `MRD-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+    starts_at: new Date().toISOString(), ends_at: new Date(Date.now() + 3600000).toISOString(),
+    duration_minutes: 30, customer_timezone: "Asia/Beirut", staff_timezone: "Asia/Beirut",
+    status: "confirmed" as any, meeting_method: "video" as any, meeting_url: null, meeting_phone: null,
+    meeting_location: null, meeting_provider: null, meeting_ref: null, meeting_instructions: null,
+    price_cents: 0, currency: "USD", access_token_hash: "", title: null, internal_notes: null,
+    customer_note: null, source: "admin", rescheduled_from: null, cancelled_at: null, cancelled_by: null,
+    cancellation_reason: null, completed_at: null, external_event_ids: {}, metadata: {},
+    created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null,
   });
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <Select label="Service" value={form.service_id} onChange={(e) => setForm({ ...form, service_id: e.target.value })} options={data.services.map((s) => ({ value: s.id, label: s.name }))} />
-        <Select label="Staff" value={form.staff_id} onChange={(e) => setForm({ ...form, staff_id: e.target.value })} options={data.staff.map((s) => ({ value: s.id, label: s.display_name }))} />
+        <Select label="Service" value={form.service_id} onChange={(e) => setForm({ ...form, service_id: e.target.value })} options={services.map(s => ({ value: s.id, label: s.name }))} />
+        <Select label="Staff" value={form.staff_id} onChange={(e) => setForm({ ...form, staff_id: e.target.value })} options={staff.map(s => ({ value: s.id, label: s.display_name }))} />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <Field label="Start" type="datetime-local" value={form.starts_at.slice(0, 16)} onChange={(e) => setForm({ ...form, starts_at: new Date(e.target.value).toISOString() })} />
@@ -927,23 +628,16 @@ function BookingForm({ item, onSave, onClose, data }: { item: Booking | null; on
       </div>
       <div className="grid grid-cols-2 gap-4">
         <Select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as any })} options={[
-          { value: "pending", label: "Pending" },
-          { value: "confirmed", label: "Confirmed" },
-          { value: "cancelled", label: "Cancelled" },
-          { value: "completed", label: "Completed" },
-          { value: "no_show", label: "No Show" },
+          { value: "pending", label: "Pending" }, { value: "confirmed", label: "Confirmed" },
+          { value: "cancelled", label: "Cancelled" }, { value: "completed", label: "Completed" },
         ]} />
         <Select label="Meeting Method" value={form.meeting_method} onChange={(e) => setForm({ ...form, meeting_method: e.target.value as any })} options={[
-          { value: "video", label: "Video" },
-          { value: "phone", label: "Phone" },
-          { value: "audio", label: "Audio" },
-          { value: "in_person", label: "In Person" },
+          { value: "video", label: "Video" }, { value: "phone", label: "Phone" },
+          { value: "audio", label: "Audio" }, { value: "in_person", label: "In Person" },
         ]} />
       </div>
       <div className="flex gap-2">
-        <Button onClick={() => onSave(form)}>
-          <Save className="h-4 w-4" /> Save
-        </Button>
+        <Button onClick={() => onSave(form)}><Save className="h-4 w-4" /> Save</Button>
         <Button variant="outline" onClick={onClose}>Cancel</Button>
       </div>
     </div>
@@ -951,24 +645,11 @@ function BookingForm({ item, onSave, onClose, data }: { item: Booking | null; on
 }
 
 function CustomerForm({ item, onSave, onClose }: { item: Customer | null; onSave: (c: Customer) => void; onClose: () => void }) {
-  const [form, setForm] = useState(item || {
-    id: `c${Date.now()}`,
-    org_id: "org1",
-    user_id: null,
-    full_name: "",
-    email: "",
-    phone: "",
-    company: "",
-    timezone: "Asia/Beirut",
-    notes: null,
-    tags: [],
-    total_bookings: 0,
-    total_cancellations: 0,
-    last_booking_at: null,
-    is_blocked: false,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    deleted_at: null,
+  const [form, setForm] = useState<Customer>(item || {
+    id: `c${Date.now()}`, org_id: ORG_ID, user_id: null, full_name: "", email: "", phone: "",
+    company: "", timezone: "Asia/Beirut", notes: null, tags: [], total_bookings: 0,
+    total_cancellations: 0, last_booking_at: null, is_blocked: false,
+    created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null,
   });
 
   return (
@@ -982,39 +663,23 @@ function CustomerForm({ item, onSave, onClose }: { item: Customer | null; onSave
         <Field label="Company" value={form.company || ""} onChange={(e) => setForm({ ...form, company: e.target.value })} />
       </div>
       <div className="flex gap-2">
-        <Button onClick={() => onSave(form)}>
-          <Save className="h-4 w-4" /> Save
-        </Button>
+        <Button onClick={() => onSave(form)}><Save className="h-4 w-4" /> Save</Button>
         <Button variant="outline" onClick={onClose}>Cancel</Button>
       </div>
     </div>
   );
 }
 
-function ScheduleForm({ item, onSave, onClose }: { item: Schedule | null; onSave: (s: Schedule) => void; onClose: () => void }) {
-  const [form, setForm] = useState<Schedule>(item || {
-    id: `sch${Date.now()}`,
-    org_id: "org1",
-    staff_id: "",
-    name: "",
-    timezone: "Asia/Beirut",
-    is_default: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    availability_rules: [],
+function ScheduleForm({ item, onSave, onClose }: { item: (Schedule & { availability_rules: AvailabilityRule[] }) | null; onSave: (s: any) => void; onClose: () => void }) {
+  const [form, setForm] = useState(item || {
+    id: `sch${Date.now()}`, org_id: ORG_ID, staff_id: "", name: "", timezone: "Asia/Beirut",
+    is_default: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), availability_rules: [],
   });
 
   const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
   const addRule = (weekday: number) => {
-    const newRule: AvailabilityRule = {
-      id: `ar${Date.now()}`,
-      schedule_id: form.id,
-      weekday,
-      start_time: "09:00",
-      end_time: "17:00",
-      created_at: new Date().toISOString(),
-    };
+    const newRule: AvailabilityRule = { id: `ar${Date.now()}`, schedule_id: form.id, weekday, start_time: "09:00", end_time: "17:00", created_at: new Date().toISOString() };
     setForm({ ...form, availability_rules: [...(form.availability_rules || []), newRule] });
   };
 
@@ -1027,14 +692,11 @@ function ScheduleForm({ item, onSave, onClose }: { item: Schedule | null; onSave
       <div className="grid grid-cols-2 gap-4">
         <Field label="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
         <Select label="Timezone" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} options={[
-          { value: "Asia/Beirut", label: "Asia/Beirut" },
-          { value: "Europe/London", label: "Europe/London" },
-          { value: "Europe/Paris", label: "Europe/Paris" },
-          { value: "America/New_York", label: "America/New_York" },
+          { value: "Asia/Beirut", label: "Asia/Beirut" }, { value: "Europe/London", label: "Europe/London" },
+          { value: "Europe/Paris", label: "Europe/Paris" }, { value: "America/New_York", label: "America/New York" },
           { value: "UTC", label: "UTC" },
         ]} />
       </div>
-
       <div>
         <p className="text-sm font-medium mb-2">Weekly Rules</p>
         <div className="space-y-2">
@@ -1043,9 +705,7 @@ function ScheduleForm({ item, onSave, onClose }: { item: Schedule | null; onSave
             return (
               <div key={day} className="flex items-center gap-2 p-2 rounded-field border border-hairline">
                 <span className="text-sm w-24">{day}</span>
-                {rules.length === 0 ? (
-                  <span className="text-xs text-mute">Closed</span>
-                ) : (
+                {rules.length === 0 ? <span className="text-xs text-mute">Closed</span> : (
                   <div className="flex-1 space-y-1">
                     {rules.map((r: AvailabilityRule) => (
                       <div key={r.id} className="flex items-center gap-2">
@@ -1057,49 +717,14 @@ function ScheduleForm({ item, onSave, onClose }: { item: Schedule | null; onSave
                     ))}
                   </div>
                 )}
-                <Button variant="ghost" size="sm" onClick={() => addRule(idx)}>
-                  <Plus className="h-3.5 w-3.5" />
-                </Button>
+                <Button variant="ghost" size="sm" onClick={() => addRule(idx)}><Plus className="h-3.5 w-3.5" /></Button>
               </div>
             );
           })}
         </div>
       </div>
-
       <div className="flex gap-2">
-        <Button onClick={() => onSave(form)}>
-          <Save className="h-4 w-4" /> Save
-        </Button>
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-      </div>
-    </div>
-  );
-}
-
-function SettingsForm({ item, onSave, onClose }: { item: any; onSave: (s: any) => void; onClose: () => void }) {
-  const [form, setForm] = useState(item);
-
-  return (
-    <div className="space-y-4">
-      <Field label="Organization Name" value={form.orgName} onChange={(e) => setForm({ ...form, orgName: e.target.value })} />
-      <Field label="Slug" value={form.orgSlug} onChange={(e) => setForm({ ...form, orgSlug: e.target.value })} />
-      <Select label="Timezone" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} options={[
-        { value: "Asia/Beirut", label: "Asia/Beirut" },
-        { value: "Europe/London", label: "Europe/London" },
-        { value: "Europe/Paris", label: "Europe/Paris" },
-        { value: "America/New_York", label: "America/New_York" },
-        { value: "UTC", label: "UTC" },
-      ]} />
-      <Select label="Currency" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} options={[
-        { value: "USD", label: "USD" },
-        { value: "EUR", label: "EUR" },
-        { value: "GBP", label: "GBP" },
-        { value: "LBP", label: "LBP" },
-      ]} />
-      <div className="flex gap-2">
-        <Button onClick={() => onSave(form)}>
-          <Save className="h-4 w-4" /> Save
-        </Button>
+        <Button onClick={() => onSave(form)}><Save className="h-4 w-4" /> Save</Button>
         <Button variant="outline" onClick={onClose}>Cancel</Button>
       </div>
     </div>
