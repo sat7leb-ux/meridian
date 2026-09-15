@@ -118,12 +118,16 @@ export default function AdminPortal() {
   };
 
   const saveStaff = async (item: Staff) => {
-    if (!sb) return;
-    const { error } = await sb.from("meridian_staff").upsert({ ...item, org_id: ORG_ID, updated_at: new Date().toISOString() });
-    if (error) { showToast(error.message, "error"); return; }
-    showToast("Staff saved");
-    closeModal();
-    fetchData();
+    if (!sb) { showToast("Database not connected", "error"); return; }
+    try {
+      const { error } = await sb.from("meridian_staff").upsert({ ...item, org_id: ORG_ID, updated_at: new Date().toISOString() });
+      if (error) { showToast(`Error: ${error.message}`, "error"); console.error("Staff save error:", error); return; }
+      showToast("Staff saved");
+      closeModal();
+      fetchData();
+    } catch (e: any) {
+      showToast(`Error: ${e.message}`, "error"); console.error("Staff save exception:", e);
+    }
   };
 
   const saveBooking = async (item: Booking) => {
@@ -510,7 +514,7 @@ function SettingsPage() {
 
 function ServiceForm({ item, onSave, onClose }: { item: Service | null; onSave: (s: Service) => void; onClose: () => void }) {
   const [form, setForm] = useState<Service>(item || {
-    id: `s${Date.now()}`, org_id: ORG_ID, category_id: null, slug: "", name: "", description: "",
+    id: crypto.randomUUID(), org_id: ORG_ID, category_id: null, slug: "", name: "", description: "",
     duration_minutes: 30, slot_interval_minutes: 15, price_cents: 0, currency: "USD",
     meeting_methods: ["video"] as any, default_method: "video" as any, location: null, phone_number: null,
     custom_meeting_url: null, meeting_instructions: null, buffer_before_minutes: 0, buffer_after_minutes: 0,
@@ -551,7 +555,7 @@ function ServiceForm({ item, onSave, onClose }: { item: Service | null; onSave: 
 
 function StaffForm({ item, onSave, onClose }: { item: Staff | null; onSave: (s: Staff) => void; onClose: () => void }) {
   const [form, setForm] = useState<Staff>(item || {
-    id: `st${Date.now()}`, org_id: ORG_ID, user_id: null, slug: "", display_name: "", title: "",
+    id: crypto.randomUUID(), org_id: ORG_ID, user_id: null, slug: "", display_name: "", title: "",
     bio: null, avatar_url: null, email: "", phone: "", timezone: "Asia/Beirut", color: "#0E7C7B",
     is_bookable: true, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null,
   });
@@ -584,7 +588,7 @@ function StaffForm({ item, onSave, onClose }: { item: Staff | null; onSave: (s: 
 
 function BookingForm({ item, onSave, onClose, services, staff }: { item: Booking | null; onSave: (b: Booking) => void; onClose: () => void; services: Service[]; staff: Staff[] }) {
   const [form, setForm] = useState<Booking>(item || {
-    id: `b${Date.now()}`, org_id: ORG_ID, service_id: services[0]?.id || "", staff_id: staff[0]?.id || "",
+    id: crypto.randomUUID(), org_id: ORG_ID, service_id: services[0]?.id || "", staff_id: staff[0]?.id || "",
     customer_id: "", reference: `MRD-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
     starts_at: new Date().toISOString(), ends_at: new Date(Date.now() + 3600000).toISOString(),
     duration_minutes: 30, customer_timezone: "Asia/Beirut", staff_timezone: "Asia/Beirut",
@@ -626,7 +630,7 @@ function BookingForm({ item, onSave, onClose, services, staff }: { item: Booking
 
 function CustomerForm({ item, onSave, onClose }: { item: Customer | null; onSave: (c: Customer) => void; onClose: () => void }) {
   const [form, setForm] = useState<Customer>(item || {
-    id: `c${Date.now()}`, org_id: ORG_ID, user_id: null, full_name: "", email: "", phone: "",
+    id: crypto.randomUUID(), org_id: ORG_ID, user_id: null, full_name: "", email: "", phone: "",
     company: "", timezone: "Asia/Beirut", notes: null, tags: [], total_bookings: 0,
     total_cancellations: 0, last_booking_at: null, is_blocked: false,
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null,
@@ -652,7 +656,7 @@ function CustomerForm({ item, onSave, onClose }: { item: Customer | null; onSave
 
 function ScheduleForm({ item, onSave, onClose }: { item: (Schedule & { availability_rules: AvailabilityRule[] }) | null; onSave: (s: any) => void; onClose: () => void }) {
   const [form, setForm] = useState(item || {
-    id: `sch${Date.now()}`, org_id: ORG_ID, staff_id: "", name: "", timezone: "Asia/Beirut",
+    id: crypto.randomUUID(), org_id: ORG_ID, staff_id: "", name: "", timezone: "Asia/Beirut",
     is_default: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), availability_rules: [],
   });
 
