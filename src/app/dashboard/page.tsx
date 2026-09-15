@@ -43,27 +43,27 @@ export default async function DashboardPage() {
 
   // Get org data
   const { data: org } = await sb
-    .from("organizations")
+    .from("meridian_organizations")
     .select("*")
     .eq("id", orgId)
     .single();
 
   // Get stats
   const { data: bookings } = await sb
-    .from("bookings")
-    .select("*, services(name), staff(display_name), customers(full_name, email)")
+    .from("meridian_bookings")
+    .select("*, meridian_services(name), meridian_staff(display_name), meridian_customers(full_name, email)")
     .eq("org_id", orgId)
     .order("starts_at", { ascending: false })
     .limit(10);
 
   const { data: services } = await sb
-    .from("services")
+    .from("meridian_services")
     .select("*")
     .eq("org_id", orgId)
     .eq("is_active", true);
 
   const { data: customers } = await sb
-    .from("customers")
+    .from("meridian_customers")
     .select("*")
     .eq("org_id", orgId)
     .order("created_at", { ascending: false })
@@ -119,11 +119,11 @@ export default async function DashboardPage() {
             </div>
             {bookings && bookings.length > 0 ? (
               <div className="space-y-3">
-                {bookings.slice(0, 5).map((b: { id: string; customers: { full_name: string } | null; services: { name: string } | null; starts_at: string; status: string }) => (
+                {bookings.slice(0, 5).map((b: { id: string; meridian_customers: { full_name: string } | null; meridian_services: { name: string } | null; starts_at: string; status: string }) => (
                   <div key={b.id} className="flex items-center justify-between py-2 border-b border-hairline last:border-0">
                     <div>
-                      <p className="font-medium text-sm">{b.customers?.full_name ?? "Unknown"}</p>
-                      <p className="text-xs text-mute">{b.services?.name ?? "Unknown service"}</p>
+                      <p className="font-medium text-sm">{b.meridian_customers?.full_name ?? "Unknown"}</p>
+                      <p className="text-xs text-mute">{b.meridian_services?.name ?? "Unknown service"}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm tabular">{new Date(b.starts_at).toLocaleDateString()}</p>

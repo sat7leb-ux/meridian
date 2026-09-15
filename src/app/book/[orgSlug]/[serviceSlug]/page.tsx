@@ -17,7 +17,7 @@ async function getServiceData(orgSlug: string, serviceSlug: string) {
   if (!sb) return null;
 
   const { data: org } = await sb
-    .from("organizations")
+    .from("meridian_organizations")
     .select("*")
     .eq("slug", orgSlug)
     .eq("is_active", true)
@@ -26,8 +26,8 @@ async function getServiceData(orgSlug: string, serviceSlug: string) {
   if (!org) return null;
 
   const { data: service } = await sb
-    .from("services")
-    .select("*, service_categories(name)")
+    .from("meridian_services")
+    .select("*")
     .eq("org_id", org.id)
     .eq("slug", serviceSlug)
     .eq("is_published", true)
@@ -37,7 +37,7 @@ async function getServiceData(orgSlug: string, serviceSlug: string) {
   if (!service) return null;
 
   const { data: staffList } = await sb
-    .from("staff")
+    .from("meridian_staff")
     .select("*")
     .eq("org_id", org.id)
     .eq("is_active", true)
@@ -45,13 +45,13 @@ async function getServiceData(orgSlug: string, serviceSlug: string) {
     .order("display_name");
 
   const { data: schedules } = await sb
-    .from("schedules")
-    .select("*, availability_rules(*)")
+    .from("meridian_schedules")
+    .select("*, meridian_availability_rules(*)")
     .eq("org_id", org.id);
 
   // Get service-staff assignments
   const { data: serviceStaff } = await sb
-    .from("service_staff")
+    .from("meridian_service_staff")
     .select("staff_id")
     .eq("service_id", service.id);
 
@@ -60,7 +60,7 @@ async function getServiceData(orgSlug: string, serviceSlug: string) {
 
   return {
     org,
-    service: service as Service & { service_categories: { name: string } | null },
+    service: service as Service,
     staff: assignedStaff as Staff[],
     schedules: (schedules ?? []) as (Schedule & { availability_rules: AvailabilityRule[] })[],
   };
@@ -100,17 +100,17 @@ export default async function ServiceBookingPage({ params }: PageProps) {
 
   if (sb && staff.length > 0) {
     const { data: busyData } = await sb
-      .from("bookings")
-      .select("starts_at, ends_at, services(buffer_before_minutes, buffer_after_minutes)")
+      .from("meridian_bookings")
+      .select("starts_at, ends_at, meridian_services!inner(buffer_before_minutes, buffer_after_minutes)")
       .eq("staff_id", staff[0].id)
       .not("status", "in", "(cancelled,no_show)")
       .gte("starts_at", from.toISOString())
       .lte("starts_at", to.toISOString());
 
     if (busyData) {
-      busyIntervals = busyData.map((b: { starts_at: string; ends_at: string; services: { buffer_before_minutes: number; buffer_after_minutes: number } | null }) => ({
-        start: new Date(new Date(b.starts_at).getTime() - (b.services?.buffer_before_minutes ?? 0) * 60000),
-        end: new Date(new Date(b.ends_at).getTime() + (b.services?.buffer_after_minutes ?? 0) * 60000),
+      busyIntervals = busyData.map((b: { starts_at: string; ends_at: string; meridian_services: { buffer_before_minutes: number; buffer_after_minutes: number } | null }) => ({
+        start: new Date(new Date(b.starts_at).getTime() - (b.meridian_services?.buffer_before_minutes ?? 0) * 60000),
+        end: new Date(new Date(b.ends_at).getTime() + (b.meridian_services?.buffer_after_minutes ?? 0) * 60000),
       }));
     }
   }

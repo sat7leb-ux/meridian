@@ -41,7 +41,7 @@ export async function createBooking(formData: FormData) {
 
   // Get service details for price and buffers
   const { data: service } = await sb
-    .from("services")
+    .from("meridian_services")
     .select("*")
     .eq("id", data.service_id)
     .single();
@@ -53,7 +53,7 @@ export async function createBooking(formData: FormData) {
   // Check for existing customer or create new one
   let customerId: string;
   const { data: existingCustomer } = await sb
-    .from("customers")
+    .from("meridian_customers")
     .select("id")
     .eq("org_id", data.org_id)
     .eq("email", data.email.toLowerCase())
@@ -63,7 +63,7 @@ export async function createBooking(formData: FormData) {
     customerId = existingCustomer.id;
   } else {
     const { data: newCustomer } = await sb
-      .from("customers")
+      .from("meridian_customers")
       .insert({
         org_id: data.org_id,
         full_name: data.name,
@@ -83,11 +83,9 @@ export async function createBooking(formData: FormData) {
   // Create booking
   const startsAt = new Date(data.starts_at);
   const endsAt = new Date(data.ends_at);
-  const bufferBefore = service.buffer_before_minutes ?? 0;
-  const bufferAfter = service.buffer_after_minutes ?? 0;
 
   const { data: booking, error } = await sb
-    .from("bookings")
+    .from("meridian_bookings")
     .insert({
       org_id: data.org_id,
       service_id: data.service_id,
@@ -95,7 +93,6 @@ export async function createBooking(formData: FormData) {
       customer_id: customerId,
       starts_at: startsAt.toISOString(),
       ends_at: endsAt.toISOString(),
-      period: `[${new Date(startsAt.getTime() - bufferBefore * 60000).toISOString()}, ${new Date(endsAt.getTime() + bufferAfter * 60000).toISOString()})`,
       duration_minutes: parseInt(data.duration_minutes),
       customer_timezone: data.timezone,
       staff_timezone: service.timezone ?? "UTC",
@@ -108,7 +105,7 @@ export async function createBooking(formData: FormData) {
       customer_note: data.notes || null,
       source: "public",
     })
-    .select("*, services(name), staff(display_name)")
+    .select("*")
     .single();
 
   if (error) {

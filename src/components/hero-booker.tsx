@@ -12,7 +12,7 @@ import Link from "next/link";
 interface HeroBookerProps {
   data: {
     org: { name: string; timezone: string; logo_url: string | null };
-    services: (Service & { service_categories: { name: string } | null })[];
+    services: Service[],
     staff: Staff[];
     schedules: (Schedule & { availability_rules: AvailabilityRule[] })[];
   };

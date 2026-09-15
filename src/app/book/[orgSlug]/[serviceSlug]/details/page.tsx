@@ -18,7 +18,7 @@ async function getBookingData(orgSlug: string, serviceSlug: string) {
   if (!sb) return null;
 
   const { data: org } = await sb
-    .from("organizations")
+    .from("meridian_organizations")
     .select("*")
     .eq("slug", orgSlug)
     .eq("is_active", true)
@@ -27,8 +27,8 @@ async function getBookingData(orgSlug: string, serviceSlug: string) {
   if (!org) return null;
 
   const { data: service } = await sb
-    .from("services")
-    .select("*, service_categories(name)")
+    .from("meridian_services")
+    .select("*")
     .eq("org_id", org.id)
     .eq("slug", serviceSlug)
     .eq("is_published", true)
@@ -38,7 +38,7 @@ async function getBookingData(orgSlug: string, serviceSlug: string) {
   if (!service) return null;
 
   const { data: staffList } = await sb
-    .from("staff")
+    .from("meridian_staff")
     .select("*")
     .eq("org_id", org.id)
     .eq("is_active", true)
@@ -46,7 +46,7 @@ async function getBookingData(orgSlug: string, serviceSlug: string) {
     .order("display_name");
 
   const { data: serviceStaff } = await sb
-    .from("service_staff")
+    .from("meridian_service_staff")
     .select("staff_id")
     .eq("service_id", service.id);
 
@@ -66,7 +66,7 @@ async function getBookingData(orgSlug: string, serviceSlug: string) {
 
   return {
     org,
-    service: service as Service & { service_categories: { name: string } | null },
+    service: service as Service,
     staff: assignedStaff as Staff[],
     formFields,
   };

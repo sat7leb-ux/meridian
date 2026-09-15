@@ -16,7 +16,7 @@ async function getOrgData(orgSlug: string) {
   if (!sb) return null;
 
   const { data: org } = await sb
-    .from("organizations")
+    .from("meridian_organizations")
     .select("*")
     .eq("slug", orgSlug)
     .eq("is_active", true)
@@ -25,15 +25,15 @@ async function getOrgData(orgSlug: string) {
   if (!org) return null;
 
   const { data: services } = await sb
-    .from("services")
-    .select("*, service_categories(name)")
+    .from("meridian_services")
+    .select("*")
     .eq("org_id", org.id)
     .eq("is_published", true)
     .eq("is_active", true)
     .order("sort_order");
 
   const { data: staff } = await sb
-    .from("staff")
+    .from("meridian_staff")
     .select("*")
     .eq("org_id", org.id)
     .eq("is_active", true)
@@ -41,13 +41,13 @@ async function getOrgData(orgSlug: string) {
     .order("display_name");
 
   const { data: schedules } = await sb
-    .from("schedules")
-    .select("*, availability_rules(*)")
+    .from("meridian_schedules")
+    .select("*, meridian_availability_rules(*)")
     .eq("org_id", org.id);
 
   return {
     org,
-    services: (services ?? []) as (Service & { service_categories: { name: string } | null })[],
+    services: (services ?? []) as Service[],
     staff: (staff ?? []) as Staff[],
     schedules: (schedules ?? []) as (Schedule & { availability_rules: AvailabilityRule[] })[],
   };
@@ -72,7 +72,7 @@ export default async function BookingPage({ params }: PageProps) {
 
   // Group services by category
   const categories = services.reduce<Record<string, typeof services>>((acc, s) => {
-    const cat = s.service_categories?.name ?? "Other";
+    const cat = "Services";
     (acc[cat] ??= []).push(s);
     return acc;
   }, {});
@@ -142,7 +142,7 @@ export default async function BookingPage({ params }: PageProps) {
   );
 }
 
-function ServiceCard({ service, orgSlug }: { service: Service & { service_categories: { name: string } | null }; orgSlug: string }) {
+function ServiceCard({ service, orgSlug }: { service: Service; orgSlug: string }) {
   const methodIcons = {
     video: <Video className="h-4 w-4" />,
     phone: <Phone className="h-4 w-4" />,

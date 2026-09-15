@@ -12,7 +12,7 @@ export async function cancelBooking(formData: FormData) {
   const token = formData.get("token") as string;
 
   const { error } = await sb
-    .from("bookings")
+    .from("meridian_bookings")
     .update({
       status: "cancelled",
       cancelled_at: new Date().toISOString(),
@@ -42,8 +42,8 @@ export async function rescheduleBooking(formData: FormData) {
 
   // Get the booking to calculate the new end time
   const { data: booking } = await sb
-    .from("bookings")
-    .select("duration_minutes, services(buffer_before_minutes, buffer_after_minutes)")
+    .from("meridian_bookings")
+    .select("duration_minutes, meridian_services(buffer_before_minutes, buffer_after_minutes)")
     .eq("id", bookingId)
     .single();
 
@@ -53,11 +53,11 @@ export async function rescheduleBooking(formData: FormData) {
 
   const startsAt = new Date(newStartsAt);
   const endsAt = new Date(startsAt.getTime() + booking.duration_minutes * 60000);
-  const bufferBefore = booking.services?.buffer_before_minutes ?? 0;
-  const bufferAfter = booking.services?.buffer_after_minutes ?? 0;
+  const bufferBefore = booking.meridian_services?.buffer_before_minutes ?? 0;
+  const bufferAfter = booking.meridian_services?.buffer_after_minutes ?? 0;
 
   const { error } = await sb
-    .from("bookings")
+    .from("meridian_bookings")
     .update({
       starts_at: startsAt.toISOString(),
       ends_at: endsAt.toISOString(),

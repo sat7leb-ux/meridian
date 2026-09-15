@@ -35,13 +35,13 @@ export default async function ServicesPage() {
   const orgId = memberships[0].org_id;
 
   const { data: services } = await sb
-    .from("services")
-    .select("*, service_categories(name)")
+    .from("meridian_services")
+    .select("*")
     .eq("org_id", orgId)
     .order("sort_order");
 
   const { data: categories } = await sb
-    .from("service_categories")
+    .from("meridian_service_categories")
     .select("*")
     .eq("org_id", orgId)
     .order("sort_order");
@@ -69,14 +69,11 @@ export default async function ServicesPage() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {services && services.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {services.map((s: { id: string; name: string; service_categories: { name: string } | null; description: string | null; duration_minutes: number; price_cents: number; meeting_methods: string[]; is_published: boolean }) => (
+            {services.map((s: { id: string; name: string; description: string | null; duration_minutes: number; price_cents: number; meeting_methods: string[]; is_published: boolean }) => (
               <Card key={s.id} hover>
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h3 className="font-display font-semibold">{s.name}</h3>
-                    {s.service_categories && (
-                      <p className="text-xs text-mute">{s.service_categories.name}</p>
-                    )}
                   </div>
                   <Badge variant={s.is_published ? "confirmed" : "pending"}>
                     {s.is_published ? "Published" : "Draft"}
@@ -151,7 +148,7 @@ async function deleteService(formData: FormData) {
   if (!sb) redirect("/login");
 
   const id = formData.get("id") as string;
-  await sb.from("services").delete().eq("id", id);
+  await sb.from("meridian_services").delete().eq("id", id);
 
   revalidatePath("/services");
   redirect("/services");

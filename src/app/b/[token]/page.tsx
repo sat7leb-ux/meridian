@@ -18,14 +18,14 @@ async function getBookingByToken(token: string) {
   // Hash the token and look up the booking
   const tokenHash = await hashToken(token);
   const { data: booking } = await sb
-    .from("bookings")
-    .select("*, services(name, description, meeting_instructions), staff(display_name, title, email, phone)")
+    .from("meridian_bookings")
+    .select("*, meridian_services(name, description, meeting_instructions), meridian_staff(display_name, title, email, phone)")
     .eq("access_token_hash", tokenHash)
     .single();
 
   return booking as (Booking & {
-    services: { name: string; description: string | null; meeting_instructions: string | null };
-    staff: { display_name: string; title: string | null; email: string | null; phone: string | null };
+    meridian_services: { name: string; description: string | null; meeting_instructions: string | null };
+    meridian_staff: { display_name: string; title: string | null; email: string | null; phone: string | null };
   }) | null;
 }
 
@@ -107,9 +107,9 @@ export default async function BookingConfirmationPage({ params, searchParams }: 
         )}
 
         <div className="card p-6 mb-6">
-          <h1 className="text-2xl font-display font-bold mb-2">{booking.services.name}</h1>
-          {booking.services.description && (
-            <p className="text-mute mb-4">{booking.services.description}</p>
+          <h1 className="text-2xl font-display font-bold mb-2">{booking.meridian_services.name}</h1>
+          {booking.meridian_services.description && (
+            <p className="text-mute mb-4">{booking.meridian_services.description}</p>
           )}
 
           <div className="grid sm:grid-cols-2 gap-4 mb-6">
@@ -144,25 +144,25 @@ export default async function BookingConfirmationPage({ params, searchParams }: 
             </div>
           </div>
 
-          {booking.staff && (
+          {booking.meridian_staff && (
             <div className="border-t border-hairline pt-4 mb-4">
               <p className="text-sm text-mute mb-2">Your host</p>
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-teal/10 flex items-center justify-center">
-                  <span className="text-teal font-medium">{booking.staff.display_name.charAt(0)}</span>
+                  <span className="text-teal font-medium">{booking.meridian_staff.display_name.charAt(0)}</span>
                 </div>
                 <div>
-                  <p className="font-medium">{booking.staff.display_name}</p>
-                  {booking.staff.title && <p className="text-sm text-mute">{booking.staff.title}</p>}
+                  <p className="font-medium">{booking.meridian_staff.display_name}</p>
+                  {booking.meridian_staff.title && <p className="text-sm text-mute">{booking.meridian_staff.title}</p>}
                 </div>
               </div>
             </div>
           )}
 
-          {booking.services.meeting_instructions && (
+          {booking.meridian_services.meeting_instructions && (
             <div className="border-t border-hairline pt-4">
               <p className="text-sm text-mute mb-1">Instructions</p>
-              <p className="text-sm">{booking.services.meeting_instructions}</p>
+              <p className="text-sm">{booking.meridian_services.meeting_instructions}</p>
             </div>
           )}
         </div>
