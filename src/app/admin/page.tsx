@@ -55,17 +55,15 @@ export default function AdminPortal() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<"service" | "staff" | "booking" | "customer" | "schedule" | "settings">("service");
+  const [modalType, setModalType] = useState<"service" | "staff" | "booking" | "customer" | "schedule">("service");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
-  const [dataLoading, setDataLoading] = useState(true);
 
   const sb = createPublicClient();
 
   const fetchData = useCallback(async () => {
     if (!sb) return;
-    setDataLoading(true);
     try {
       const [svcRes, stfRes, bkRes, custRes, schRes] = await Promise.all([
         sb.from("meridian_services").select("*").eq("org_id", ORG_ID).eq("is_active", true).order("sort_order"),
@@ -82,7 +80,6 @@ export default function AdminPortal() {
     } catch (e) {
       console.error("Fetch error:", e);
     }
-    setDataLoading(false);
   }, [sb]);
 
   useEffect(() => {
@@ -90,7 +87,9 @@ export default function AdminPortal() {
   }, [authenticated, fetchData]);
 
   useEffect(() => {
-    if (!loading && !authenticated) router.push("/admin/login");
+    if (!loading && !authenticated) {
+      router.replace("/admin/login");
+    }
   }, [loading, authenticated, router]);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
@@ -104,7 +103,10 @@ export default function AdminPortal() {
     setShowModal(true);
   };
 
-  const closeModal = () => { setShowModal(false); setEditingItem(null); };
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingItem(null);
+  };
 
   const saveService = async (item: Service) => {
     if (!sb) return;
@@ -147,7 +149,6 @@ export default function AdminPortal() {
     const { availability_rules, ...scheduleData } = item;
     const { error: schError } = await sb.from("meridian_schedules").upsert({ ...scheduleData, org_id: ORG_ID, updated_at: new Date().toISOString() });
     if (schError) { showToast(schError.message, "error"); return; }
-    // Delete old rules and insert new ones
     await sb.from("meridian_availability_rules").delete().eq("schedule_id", item.id);
     if (availability_rules.length > 0) {
       const { error: rulesError } = await sb.from("meridian_availability_rules").insert(availability_rules.map(r => ({ ...r, schedule_id: item.id })));
@@ -168,7 +169,7 @@ export default function AdminPortal() {
     fetchData();
   };
 
-  if (loading || dataLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-paper flex items-center justify-center">
         <div className="text-center">
@@ -181,7 +182,13 @@ export default function AdminPortal() {
     );
   }
 
-  if (!authenticated) return null;
+  if (!authenticated) {
+    return (
+      <div className="min-h-screen bg-paper flex items-center justify-center">
+        <p className="text-mute">Redirecting to login...</p>
+      </div>
+    );
+  }
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: <BarChart3 className="h-4 w-4" /> },
@@ -195,7 +202,6 @@ export default function AdminPortal() {
 
   return (
     <div className="min-h-screen bg-paper flex">
-      {/* Sidebar */}
       <aside className={cn("border-r border-hairline bg-surface transition-all duration-200 flex flex-col", sidebarOpen ? "w-64" : "w-16")}>
         <div className="p-4 border-b border-hairline flex items-center justify-between">
           {sidebarOpen && <span className="font-display font-bold text-lg">Meridian Admin</span>}
@@ -219,7 +225,6 @@ export default function AdminPortal() {
         </div>
       </aside>
 
-      {/* Main */}
       <main className="flex-1 p-6 max-w-7xl overflow-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -248,7 +253,6 @@ export default function AdminPortal() {
         {currentPage === "settings" && <SettingsPage />}
       </main>
 
-      {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" onClick={closeModal} />
@@ -277,9 +281,6 @@ export default function AdminPortal() {
   );
 }
 
-/* =====================================================================
-   DASHBOARD
-   ===================================================================== */
 function DashboardPage({ services, staff, bookings, customers }: { services: Service[]; staff: Staff[]; bookings: Booking[]; customers: Customer[] }) {
   const confirmed = bookings.filter(b => b.status === "confirmed").length;
   const pending = bookings.filter(b => b.status === "pending").length;
@@ -326,9 +327,6 @@ function DashboardPage({ services, staff, bookings, customers }: { services: Ser
   );
 }
 
-/* =====================================================================
-   SERVICES
-   ===================================================================== */
 function ServicesPage({ services, onEdit, onDelete, searchQuery }: { services: Service[]; onEdit: (s: Service) => void; onDelete: (id: string) => void; searchQuery: string }) {
   const filtered = services.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
   return (
@@ -357,9 +355,6 @@ function ServicesPage({ services, onEdit, onDelete, searchQuery }: { services: S
   );
 }
 
-/* =====================================================================
-   STAFF
-   ===================================================================== */
 function StaffPage({ staff, onEdit, onDelete, searchQuery }: { staff: Staff[]; onEdit: (s: Staff) => void; onDelete: (id: string) => void; searchQuery: string }) {
   const filtered = staff.filter(s => s.display_name.toLowerCase().includes(searchQuery.toLowerCase()));
   return (
@@ -389,9 +384,6 @@ function StaffPage({ staff, onEdit, onDelete, searchQuery }: { staff: Staff[]; o
   );
 }
 
-/* =====================================================================
-   BOOKINGS
-   ===================================================================== */
 function BookingsPage({ bookings, services, staff, onEdit, onDelete, searchQuery, filterStatus, setFilterStatus }: { bookings: Booking[]; services: Service[]; staff: Staff[]; onEdit: (b: Booking) => void; onDelete: (id: string) => void; searchQuery: string; filterStatus: string; setFilterStatus: (s: string) => void }) {
   const filtered = bookings.filter(b => {
     const matchSearch = b.reference?.toLowerCase().includes(searchQuery.toLowerCase()) || b.title?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -437,9 +429,6 @@ function BookingsPage({ bookings, services, staff, onEdit, onDelete, searchQuery
   );
 }
 
-/* =====================================================================
-   CUSTOMERS
-   ===================================================================== */
 function CustomersPage({ customers, onEdit, onDelete, searchQuery }: { customers: Customer[]; onEdit: (c: Customer) => void; onDelete: (id: string) => void; searchQuery: string }) {
   const filtered = customers.filter(c => c.full_name.toLowerCase().includes(searchQuery.toLowerCase()) || c.email.toLowerCase().includes(searchQuery.toLowerCase()));
   return (
@@ -470,9 +459,6 @@ function CustomersPage({ customers, onEdit, onDelete, searchQuery }: { customers
   );
 }
 
-/* =====================================================================
-   AVAILABILITY
-   ===================================================================== */
 function AvailabilityPage({ schedules, staff, onEdit, onDelete }: { schedules: (Schedule & { availability_rules: AvailabilityRule[] })[]; staff: Staff[]; onEdit: (s: any) => void; onDelete: (id: string) => void }) {
   const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   return (
@@ -511,9 +497,6 @@ function AvailabilityPage({ schedules, staff, onEdit, onDelete }: { schedules: (
   );
 }
 
-/* =====================================================================
-   SETTINGS (placeholder)
-   ===================================================================== */
 function SettingsPage() {
   return (
     <div className="max-w-2xl">
@@ -525,9 +508,6 @@ function SettingsPage() {
   );
 }
 
-/* =====================================================================
-   FORMS
-   ===================================================================== */
 function ServiceForm({ item, onSave, onClose }: { item: Service | null; onSave: (s: Service) => void; onClose: () => void }) {
   const [form, setForm] = useState<Service>(item || {
     id: `s${Date.now()}`, org_id: ORG_ID, category_id: null, slug: "", name: "", description: "",
