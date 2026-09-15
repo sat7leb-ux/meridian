@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-:root {
+@theme {
   --color-ink: #0B1F2A;
   --color-paper: #F6F4EF;
   --color-surface: #FFFFFF;
@@ -8,21 +8,35 @@
   --color-teal-600: #0A6362;
   --color-teal-100: #D8ECEB;
   --color-brass: #C08A2E;
+  --color-brass-100: #F3E7CE;
   --color-mute: #6B7F88;
   --color-ok: #1E7A4B;
   --color-warn: #B45309;
   --color-stop: #A32C2C;
-  --color-hairline: rgba(107,127,136,0.26);
+
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --text-4xl: 3rem;
+  --text-5xl: 4rem;
+
   --radius-slot: 4px;
   --radius-field: 8px;
   --radius-card: 14px;
   --radius-sheet: 20px;
-  --shadow-raise: 0 1px 2px rgba(11,31,42,0.08);
-  --shadow-float: 0 8px 24px -8px rgba(11,31,42,0.18);
-  --ease-meridian: cubic-bezier(0.2,0.8,0.2,1);
-  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --shadow-raise: 0 1px 2px rgb(11 31 42 / 0.08);
+  --shadow-float: 0 8px 24px -8px rgb(11 31 42 / 0.18);
+
+  --ease-meridian: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 html {

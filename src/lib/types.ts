@@ -75,7 +75,6 @@ export interface Profile {
 export interface Staff {
   id: string;
   org_id: string;
-  user_id: string | null;
   slug: string;
   display_name: string;
   title: string | null;
@@ -134,7 +133,6 @@ export interface Service {
 export interface Customer {
   id: string;
   org_id: string;
-  user_id: string | null;
   full_name: string;
   email: string;
   phone: string | null;

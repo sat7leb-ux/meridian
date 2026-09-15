@@ -602,7 +602,7 @@ function ServiceForm({ item, onSave, onClose }: { item: Service | null; onSave: 
 
 function StaffForm({ item, onSave, onClose }: { item: Staff | null; onSave: (s: Staff) => void; onClose: () => void }) {
   const [form, setForm] = useState<Staff>(item || {
-    id: crypto.randomUUID(), org_id: ORG_ID, user_id: null, slug: "", display_name: "", title: "",
+    id: crypto.randomUUID(), org_id: ORG_ID, slug: "", display_name: "", title: "",
     bio: null, avatar_url: null, email: "", phone: "", timezone: "Asia/Beirut", color: "#0E7C7B",
     is_bookable: true, is_active: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null,
   });
@@ -745,7 +745,7 @@ function BookingForm({ item, onSave, onClose, services, staff }: { item: Booking
 
 function CustomerForm({ item, onSave, onClose }: { item: Customer | null; onSave: (c: Customer) => void; onClose: () => void }) {
   const [form, setForm] = useState<Customer>(item || {
-    id: crypto.randomUUID(), org_id: ORG_ID, user_id: null, full_name: "", email: "", phone: "",
+    id: crypto.randomUUID(), org_id: ORG_ID, full_name: "", email: "", phone: "",
     company: "", timezone: "Asia/Beirut", notes: null, tags: [], total_bookings: 0,
     total_cancellations: 0, last_booking_at: null, is_blocked: false,
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null,
