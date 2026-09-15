@@ -76,7 +76,11 @@ export default function AdminPortal() {
       setStaff(stfRes.data || []);
       setBookings(bkRes.data || []);
       setCustomers(custRes.data || []);
-      setSchedules(schRes.data || []);
+      // Supabase returns joined data under the table name; remap to `availability_rules`
+      setSchedules((schRes.data || []).map((s: any) => ({
+        ...s,
+        availability_rules: s.meridian_availability_rules || [],
+      })));
     } catch (e) {
       console.error("Fetch error:", e);
     }
@@ -149,18 +153,28 @@ export default function AdminPortal() {
   };
 
   const saveSchedule = async (item: Schedule & { availability_rules: AvailabilityRule[] }) => {
-    if (!sb) return;
-    const { availability_rules, ...scheduleData } = item;
-    const { error: schError } = await sb.from("meridian_schedules").upsert({ ...scheduleData, org_id: ORG_ID, updated_at: new Date().toISOString() });
-    if (schError) { showToast(schError.message, "error"); return; }
-    await sb.from("meridian_availability_rules").delete().eq("schedule_id", item.id);
-    if (availability_rules.length > 0) {
-      const { error: rulesError } = await sb.from("meridian_availability_rules").insert(availability_rules.map(r => ({ ...r, schedule_id: item.id })));
-      if (rulesError) { showToast(rulesError.message, "error"); return; }
+    if (!sb) { showToast("Database not connected", "error"); return; }
+    try {
+      // Strip out availability_rules — it's not a column in meridian_schedules
+      const { availability_rules, meridian_availability_rules, ...scheduleData } = item as any;
+      console.log("Saving schedule:", scheduleData);
+      const { error: schError } = await sb.from("meridian_schedules").upsert({ ...scheduleData, org_id: ORG_ID, updated_at: new Date().toISOString() });
+      if (schError) { showToast(`Schedule error: ${schError.message}`, "error"); console.error("Schedule save error:", schError); return; }
+      // Delete old rules and insert new ones
+      const { error: delError } = await sb.from("meridian_availability_rules").delete().eq("schedule_id", item.id);
+      if (delError) { showToast(`Delete rules error: ${delError.message}`, "error"); console.error("Delete rules error:", delError); return; }
+      if (availability_rules.length > 0) {
+        const rulesToInsert = availability_rules.map((r: AvailabilityRule) => ({ ...r, schedule_id: item.id }));
+        console.log("Inserting rules:", rulesToInsert);
+        const { error: rulesError } = await sb.from("meridian_availability_rules").insert(rulesToInsert);
+        if (rulesError) { showToast(`Insert rules error: ${rulesError.message}`, "error"); console.error("Insert rules error:", rulesError); return; }
+      }
+      showToast("Schedule saved");
+      closeModal();
+      fetchData();
+    } catch (e: any) {
+      showToast(`Error: ${e.message}`, "error"); console.error("Schedule save exception:", e);
     }
-    showToast("Schedule saved");
-    closeModal();
-    fetchData();
   };
 
   const deleteItem = async (type: string, id: string) => {
