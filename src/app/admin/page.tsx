@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { formatTime, formatDate, formatCurrency } from "@/lib/utils";
 import type { Service, Staff, Booking, Customer, Schedule, AvailabilityRule } from "@/lib/types";
@@ -9,6 +10,36 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, StatCard, EmptyState } from "@/components/ui/card";
 import { Field, Textarea, Select } from "@/components/ui/input";
+
+const AUTH_KEY = "meridian_admin_auth";
+
+function useAuth() {
+  const router = useRouter();
+  const [authenticated, setAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(AUTH_KEY);
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (data.loggedIn && data.email) {
+          setAuthenticated(true);
+        } else {
+          localStorage.removeItem(AUTH_KEY);
+        }
+      }
+    } catch {}
+    setLoading(false);
+  }, []);
+
+  const logout = () => {
+    localStorage.removeItem(AUTH_KEY);
+    router.push("/admin/login");
+  };
+
+  return { authenticated, loading, logout };
+}
 
 /* =====================================================================
    TYPES
@@ -104,6 +135,8 @@ function defaultData(): AdminData {
    MAIN COMPONENT
    ===================================================================== */
 export default function AdminPortal() {
+  const router = useRouter();
+  const { authenticated, loading, logout } = useAuth();
   const [data, setData] = useState<AdminData>(defaultData());
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -115,12 +148,39 @@ export default function AdminPortal() {
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
 
   useEffect(() => {
-    setData(loadData());
-  }, []);
+    if (authenticated) {
+      setData(loadData());
+    }
+  }, [authenticated]);
 
   useEffect(() => {
-    saveData(data);
-  }, [data]);
+    if (authenticated) {
+      saveData(data);
+    }
+  }, [data, authenticated]);
+
+  useEffect(() => {
+    if (!loading && !authenticated) {
+      router.push("/admin/login");
+    }
+  }, [loading, authenticated, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-paper flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-12 w-12 rounded-lg bg-teal flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <Clock className="h-6 w-6 text-white" />
+          </div>
+          <p className="text-mute">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authenticated) {
+    return null; // Router will redirect
+  }
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     setToast({ message, type });
@@ -216,6 +276,15 @@ export default function AdminPortal() {
             </button>
           ))}
         </nav>
+        <div className="mt-auto p-2 border-t border-hairline">
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-field text-sm text-mute hover:text-stop hover:bg-stop/5 transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+            {sidebarOpen && <span>Sign out</span>}
+          </button>
+        </div>
       </aside>
 
       {/* Main */}
