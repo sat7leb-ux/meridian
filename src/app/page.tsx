@@ -1,8 +1,8 @@
 import { createPublicClient } from "@/lib/supabase/public";
 import { getAvailableSlots, groupSlotsByDay } from "@/lib/scheduling/availability";
-import { formatTime, formatDate, formatCurrency, cn, detectTimezone } from "@/lib/utils";
+import { detectTimezone, formatTime, formatDate, formatCurrency, cn } from "@/lib/utils";
 import type { Service, Staff, Schedule, AvailabilityRule } from "@/lib/types";
-import { Clock, Globe, Phone, Video, MapPin, CheckCircle2, ArrowRight, ChevronLeft, ChevronRight, User, Calendar, Shield, Zap, BarChart3 } from "lucide-react";
+import { Calendar, Clock, Globe, Phone, Video, MapPin, CheckCircle2, ArrowRight, ChevronLeft, ChevronRight, User, Shield, Zap, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
